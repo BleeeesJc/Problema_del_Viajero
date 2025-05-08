@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:proyecto_moviles/lienzo.dart';
 
 class Home extends StatelessWidget {
   const Home({super.key});
@@ -31,7 +32,12 @@ class Home extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Lienzo()),
+                );
+              },
               child: const Text(
                 'Entrar',
                 style: TextStyle(fontSize: 18, color: Colors.white),
