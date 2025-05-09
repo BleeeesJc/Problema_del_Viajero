@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:proyecto_moviles/conexion.dart';
 import 'package:proyecto_moviles/lienzopainter.dart';
 
 class Lienzo extends StatefulWidget {
@@ -10,13 +11,13 @@ class Lienzo extends StatefulWidget {
 
 class _LienzoState extends State<Lienzo> {
   List<Offset> ciudades = [];
-  List<List<int>> conexiones = [];
+  List<Conexion> conexiones = [];
   double tamvalue = 10;
-  bool agregarCiudad = false;
-  bool conectarCiudades = false;
-  bool eliminarConexiones = false;
+  bool modoAgregar = false;
+  bool modoConectar = false;
+  bool modoEliminar = false;
+  bool modoEditarPeso = false;
   int? ciudadSeleccionada;
-
   double toleranciaToque = 10.0;
 
   @override
@@ -26,37 +27,34 @@ class _LienzoState extends State<Lienzo> {
         onTapDown: (TapDownDetails details) {
           Offset tapPos = details.localPosition;
 
-          if (agregarCiudad) {
+          if (modoAgregar) {
             setState(() {
               ciudades.add(tapPos);
             });
-          } else if (conectarCiudades) {
+          } else if (modoConectar) {
             for (int i = 0; i < ciudades.length; i++) {
               if ((ciudades[i] - tapPos).distance <= tamvalue) {
                 setState(() {
                   if (ciudadSeleccionada == null) {
                     ciudadSeleccionada = i;
                   } else if (ciudadSeleccionada != i) {
-                    List<int> par = [ciudadSeleccionada!, i];
-                    List<int> parInvertido = [i, ciudadSeleccionada!];
                     bool existe = conexiones.any(
                       (c) =>
-                          (c[0] == par[0] && c[1] == par[1]) ||
-                          (c[0] == parInvertido[0] && c[1] == parInvertido[1]),
+                          (c.ciudad1 == ciudadSeleccionada && c.ciudad2 == i) ||
+                          (c.ciudad1 == i && c.ciudad2 == ciudadSeleccionada),
                     );
-                    if (!existe) {
-                      conexiones.add(par);
-                    }
+                    if (!existe)
+                      conexiones.add(Conexion(ciudadSeleccionada!, i, 1.0));
                     ciudadSeleccionada = null;
                   }
                 });
                 break;
               }
             }
-          } else if (eliminarConexiones) {
+          } else if (modoEliminar) {
             for (int i = 0; i < conexiones.length; i++) {
-              Offset p1 = ciudades[conexiones[i][0]];
-              Offset p2 = ciudades[conexiones[i][1]];
+              Offset p1 = ciudades[conexiones[i].ciudad1];
+              Offset p2 = ciudades[conexiones[i].ciudad2];
               if (estaCerca(tapPos, p1, p2)) {
                 setState(() {
                   conexiones.removeAt(i);
@@ -64,15 +62,20 @@ class _LienzoState extends State<Lienzo> {
                 break;
               }
             }
+          } else if (modoEditarPeso) {
+            for (int i = 0; i < conexiones.length; i++) {
+              Offset p1 = ciudades[conexiones[i].ciudad1];
+              Offset p2 = ciudades[conexiones[i].ciudad2];
+              if (estaCerca(tapPos, p1, p2)) {
+                mostrarDialogoPeso(i);
+                break;
+              }
+            }
           }
         },
-        child: Stack(
-          children: [
-            CustomPaint(
-              painter: LienzoPainter(ciudades, tamvalue, conexiones),
-              size: Size.infinite,
-            ),
-          ],
+        child: CustomPaint(
+          painter: LienzoPainter(ciudades, tamvalue, conexiones),
+          size: Size.infinite,
         ),
       ),
       bottomNavigationBar: BottomAppBar(
@@ -82,11 +85,11 @@ class _LienzoState extends State<Lienzo> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8.0),
                   child: Text("Tamaño:"),
                 ),
-                Container(
+                SizedBox(
                   width: 150,
                   height: 50,
                   child: Slider(
@@ -94,78 +97,86 @@ class _LienzoState extends State<Lienzo> {
                     max: 50,
                     value: tamvalue,
                     label: tamvalue.round().toString(),
-                    onChanged: (value) {
-                      setState(() {
-                        tamvalue = value;
-                      });
-                    },
+                    onChanged: (value) => setState(() => tamvalue = value),
                   ),
                 ),
                 IconButton(
                   icon: Icon(
-                    agregarCiudad ? Icons.location_on : Icons.location_off,
-                    color: agregarCiudad ? Colors.green : Colors.grey,
+                    modoAgregar ? Icons.location_on : Icons.location_off,
+                    color: modoAgregar ? Colors.green : Colors.grey,
                   ),
-                  tooltip:
-                      agregarCiudad
-                          ? "Agregar ciudad activo"
-                          : "Activar agregar ciudad",
-                  onPressed: () {
-                    setState(() {
-                      agregarCiudad = !agregarCiudad;
-                      conectarCiudades = false;
-                      eliminarConexiones = false;
-                    });
-                  },
+                  tooltip: modoAgregar ? "Modo agregar" : "Activar agregar",
+                  onPressed:
+                      () => setState(() {
+                        modoAgregar = !modoAgregar;
+                        modoConectar = false;
+                        modoEliminar = false;
+                        modoEditarPeso = false;
+                        ciudadSeleccionada = null;
+                      }),
                 ),
                 IconButton(
                   icon: Icon(
-                    conectarCiudades ? Icons.share : Icons.share_outlined,
-                    color: conectarCiudades ? Colors.orange : Colors.grey,
+                    modoConectar ? Icons.share : Icons.share_outlined,
+                    color: modoConectar ? Colors.orange : Colors.grey,
                   ),
-                  tooltip:
-                      conectarCiudades
-                          ? "Conectar ciudades activo"
-                          : "Activar conectar ciudades",
-                  onPressed: () {
-                    setState(() {
-                      conectarCiudades = !conectarCiudades;
-                      agregarCiudad = false;
-                      eliminarConexiones = false;
-                      ciudadSeleccionada = null;
-                    });
-                  },
+                  tooltip: modoConectar ? "Modo conectar" : "Activar conectar",
+                  onPressed:
+                      () => setState(() {
+                        modoConectar = !modoConectar;
+                        modoAgregar = false;
+                        modoEliminar = false;
+                        modoEditarPeso = false;
+                        ciudadSeleccionada = null;
+                      }),
                 ),
                 IconButton(
                   icon: Icon(
-                    eliminarConexiones
-                        ? Icons.highlight_remove
+                    modoEliminar
+                        ? Icons.remove_circle
                         : Icons.remove_circle_outline,
-                    color: eliminarConexiones ? Colors.red : Colors.grey,
+                    color: modoEliminar ? Colors.red : Colors.grey,
                   ),
                   tooltip:
-                      eliminarConexiones
-                          ? "Eliminar conexiones activo"
-                          : "Activar eliminación de conexiones",
-                  onPressed: () {
-                    setState(() {
-                      eliminarConexiones = !eliminarConexiones;
-                      agregarCiudad = false;
-                      conectarCiudades = false;
-                      ciudadSeleccionada = null;
-                    });
-                  },
+                      modoEliminar
+                          ? "Modo eliminar conexiones"
+                          : "Activar eliminar conexiones",
+                  onPressed:
+                      () => setState(() {
+                        modoEliminar = !modoEliminar;
+                        modoAgregar = false;
+                        modoConectar = false;
+                        modoEditarPeso = false;
+                        ciudadSeleccionada = null;
+                      }),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_forever),
+                  icon: Icon(
+                    modoEditarPeso ? Icons.edit : Icons.edit_outlined,
+                    color: modoEditarPeso ? Colors.blue : Colors.grey,
+                  ),
+                  tooltip:
+                      modoEditarPeso
+                          ? "Modo editar peso"
+                          : "Activar editar peso",
+                  onPressed:
+                      () => setState(() {
+                        modoEditarPeso = !modoEditarPeso;
+                        modoAgregar = false;
+                        modoConectar = false;
+                        modoEliminar = false;
+                        ciudadSeleccionada = null;
+                      }),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete_forever),
                   tooltip: "Borrar todo",
-                  onPressed: () {
-                    setState(() {
-                      ciudades.clear();
-                      conexiones.clear();
-                      ciudadSeleccionada = null;
-                    });
-                  },
+                  onPressed:
+                      () => setState(() {
+                        ciudades.clear();
+                        conexiones.clear();
+                        ciudadSeleccionada = null;
+                      }),
                 ),
               ],
             ),
@@ -184,8 +195,44 @@ class _LienzoState extends State<Lienzo> {
         ((punto.dx - a.dx) * dx + (punto.dy - a.dy) * dy) /
         (longitud * longitud);
     t = t.clamp(0.0, 1.0);
-    Offset puntoProyectado = Offset(a.dx + t * dx, a.dy + t * dy);
-    double distancia = (punto - puntoProyectado).distance;
+    Offset pp = Offset(a.dx + t * dx, a.dy + t * dy);
+    double distancia = (punto - pp).distance;
     return distancia <= toleranciaToque;
+  }
+
+  void mostrarDialogoPeso(int indexConexion) {
+    TextEditingController controller = TextEditingController(
+      text: conexiones[indexConexion].peso.toString(),
+    );
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text("Editar peso"),
+            content: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(labelText: "Peso"),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("Cancelar"),
+              ),
+              TextButton(
+                onPressed: () {
+                  double? nuevo = double.tryParse(controller.text);
+                  if (nuevo != null) {
+                    setState(() {
+                      conexiones[indexConexion].peso = nuevo;
+                    });
+                    Navigator.pop(context);
+                  }
+                },
+                child: Text("Guardar"),
+              ),
+            ],
+          ),
+    );
   }
 }
