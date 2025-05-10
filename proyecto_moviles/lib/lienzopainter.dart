@@ -3,10 +3,11 @@ import 'package:proyecto_moviles/conexion.dart';
 
 class LienzoPainter extends CustomPainter {
   List<Offset> ciudades;
+  List<String> nombres;
   double tam;
   List<Conexion> conexiones;
 
-  LienzoPainter(this.ciudades, this.tam, this.conexiones);
+  LienzoPainter(this.ciudades, this.nombres, this.tam, this.conexiones);
 
   @override
   void paint(Canvas canvas, Size canvasSize) {
@@ -26,41 +27,42 @@ class LienzoPainter extends CustomPainter {
       var c1 = ciudades[conexion.ciudad1];
       var c2 = ciudades[conexion.ciudad2];
       canvas.drawLine(c1, c2, paintLinea);
+
       var centro = Offset((c1.dx + c2.dx) / 2, (c1.dy + c2.dy) / 2);
       var pesoText = TextSpan(
         text: conexion.peso.toStringAsFixed(1),
         style: estiloTexto,
       );
 
-      var tp = TextPainter(
+      var tpPeso = TextPainter(
         text: pesoText,
         textAlign: TextAlign.center,
         textDirection: TextDirection.ltr,
       );
-      tp.layout();
+      tpPeso.layout();
       var posicionPeso = Offset(
-        centro.dx - tp.width / 2,
-        centro.dy - tp.height / 2 + 8,
+        centro.dx - tpPeso.width / 2,
+        centro.dy - tpPeso.height / 2 + 8,
       );
-      tp.paint(canvas, posicionPeso);
+      tpPeso.paint(canvas, posicionPeso);
     }
 
     for (var i = 0; i < ciudades.length; i++) {
       var ciudad = ciudades[i];
       canvas.drawCircle(ciudad, tam / 2, paintNodo);
 
-      var label = TextSpan(text: 'Ciudad ${i + 1}', style: estiloTexto);
-      var tp = TextPainter(
-        text: label,
+      var labelText = TextSpan(text: nombres[i], style: estiloTexto);
+      var tpLabel = TextPainter(
+        text: labelText,
         textAlign: TextAlign.center,
         textDirection: TextDirection.ltr,
       );
-      tp.layout();
+      tpLabel.layout();
       var offsetLabel = Offset(
-        ciudad.dx - tp.width / 2,
+        ciudad.dx - tpLabel.width / 2,
         ciudad.dy + tam / 2 + 4,
       );
-      tp.paint(canvas, offsetLabel);
+      tpLabel.paint(canvas, offsetLabel);
     }
   }
 

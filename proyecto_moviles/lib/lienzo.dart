@@ -11,12 +11,13 @@ class Lienzo extends StatefulWidget {
 
 class _LienzoState extends State<Lienzo> {
   List<Offset> ciudades = [];
+  List<String> nombresCiudades = [];
   List<Conexion> conexiones = [];
   double tamvalue = 10;
   bool modoAgregar = false;
   bool modoConectar = false;
   bool modoEliminar = false;
-  bool modoEditarPeso = false;
+  bool modoEditar = false;
   int? ciudadSeleccionada;
   double toleranciaToque = 10.0;
 
@@ -30,6 +31,7 @@ class _LienzoState extends State<Lienzo> {
           if (modoAgregar) {
             setState(() {
               ciudades.add(tapPos);
+              nombresCiudades.add('Ciudad ${ciudades.length}');
             });
           } else if (modoConectar) {
             for (int i = 0; i < ciudades.length; i++) {
@@ -43,8 +45,9 @@ class _LienzoState extends State<Lienzo> {
                           (c.ciudad1 == ciudadSeleccionada && c.ciudad2 == i) ||
                           (c.ciudad1 == i && c.ciudad2 == ciudadSeleccionada),
                     );
-                    if (!existe)
+                    if (!existe) {
                       conexiones.add(Conexion(ciudadSeleccionada!, i, 1.0));
+                    }
                     ciudadSeleccionada = null;
                   }
                 });
@@ -56,25 +59,36 @@ class _LienzoState extends State<Lienzo> {
               Offset p1 = ciudades[conexiones[i].ciudad1];
               Offset p2 = ciudades[conexiones[i].ciudad2];
               if (estaCerca(tapPos, p1, p2)) {
-                setState(() {
-                  conexiones.removeAt(i);
-                });
+                setState(() => conexiones.removeAt(i));
                 break;
               }
             }
-          } else if (modoEditarPeso) {
+          } else if (modoEditar) {
+            // Primero, si toca cerca de una ciudad, editar nombre
+            for (int i = 0; i < ciudades.length; i++) {
+              if ((ciudades[i] - tapPos).distance <= tamvalue) {
+                mostrarDialogoNombre(i);
+                return;
+              }
+            }
+            // Si no, verifica conexiones para editar peso
             for (int i = 0; i < conexiones.length; i++) {
               Offset p1 = ciudades[conexiones[i].ciudad1];
               Offset p2 = ciudades[conexiones[i].ciudad2];
               if (estaCerca(tapPos, p1, p2)) {
                 mostrarDialogoPeso(i);
-                break;
+                return;
               }
             }
           }
         },
         child: CustomPaint(
-          painter: LienzoPainter(ciudades, tamvalue, conexiones),
+          painter: LienzoPainter(
+            ciudades,
+            nombresCiudades,
+            tamvalue,
+            conexiones,
+          ),
           size: Size.infinite,
         ),
       ),
@@ -111,7 +125,7 @@ class _LienzoState extends State<Lienzo> {
                         modoAgregar = !modoAgregar;
                         modoConectar = false;
                         modoEliminar = false;
-                        modoEditarPeso = false;
+                        modoEditar = false;
                         ciudadSeleccionada = null;
                       }),
                 ),
@@ -126,7 +140,7 @@ class _LienzoState extends State<Lienzo> {
                         modoConectar = !modoConectar;
                         modoAgregar = false;
                         modoEliminar = false;
-                        modoEditarPeso = false;
+                        modoEditar = false;
                         ciudadSeleccionada = null;
                       }),
                 ),
@@ -146,22 +160,22 @@ class _LienzoState extends State<Lienzo> {
                         modoEliminar = !modoEliminar;
                         modoAgregar = false;
                         modoConectar = false;
-                        modoEditarPeso = false;
+                        modoEditar = false;
                         ciudadSeleccionada = null;
                       }),
                 ),
                 IconButton(
                   icon: Icon(
-                    modoEditarPeso ? Icons.edit : Icons.edit_outlined,
-                    color: modoEditarPeso ? Colors.blue : Colors.grey,
+                    modoEditar ? Icons.edit : Icons.edit_outlined,
+                    color: modoEditar ? Colors.blue : Colors.grey,
                   ),
                   tooltip:
-                      modoEditarPeso
-                          ? "Modo editar peso"
-                          : "Activar editar peso",
+                      modoEditar
+                          ? "Modo editar ciudad/peso"
+                          : "Activar editar ciudad/peso",
                   onPressed:
                       () => setState(() {
-                        modoEditarPeso = !modoEditarPeso;
+                        modoEditar = !modoEditar;
                         modoAgregar = false;
                         modoConectar = false;
                         modoEliminar = false;
@@ -174,6 +188,7 @@ class _LienzoState extends State<Lienzo> {
                   onPressed:
                       () => setState(() {
                         ciudades.clear();
+                        nombresCiudades.clear();
                         conexiones.clear();
                         ciudadSeleccionada = null;
                       }),
@@ -223,11 +238,41 @@ class _LienzoState extends State<Lienzo> {
                 onPressed: () {
                   double? nuevo = double.tryParse(controller.text);
                   if (nuevo != null) {
-                    setState(() {
-                      conexiones[indexConexion].peso = nuevo;
-                    });
+                    setState(() => conexiones[indexConexion].peso = nuevo);
                     Navigator.pop(context);
                   }
+                },
+                child: Text("Guardar"),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void mostrarDialogoNombre(int indexCiudad) {
+    TextEditingController controller = TextEditingController(
+      text: nombresCiudades[indexCiudad],
+    );
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text("Editar nombre"),
+            content: TextField(
+              controller: controller,
+              decoration: InputDecoration(labelText: "Nombre ciudad"),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text("Cancelar"),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(
+                    () => nombresCiudades[indexCiudad] = controller.text,
+                  );
+                  Navigator.pop(context);
                 },
                 child: Text("Guardar"),
               ),
