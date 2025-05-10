@@ -4,18 +4,20 @@ import 'package:proyecto_moviles/conexion.dart';
 class LienzoPainter extends CustomPainter {
   List<Offset> ciudades;
   List<String> nombres;
+  List<Color> colores;
   double tam;
   List<Conexion> conexiones;
 
-  LienzoPainter(this.ciudades, this.nombres, this.tam, this.conexiones);
+  LienzoPainter(
+    this.ciudades,
+    this.nombres,
+    this.colores,
+    this.tam,
+    this.conexiones,
+  );
 
   @override
   void paint(Canvas canvas, Size canvasSize) {
-    var paintNodo =
-        Paint()
-          ..color = Colors.blue
-          ..style = PaintingStyle.fill;
-
     var paintLinea =
         Paint()
           ..color = Colors.black
@@ -49,8 +51,11 @@ class LienzoPainter extends CustomPainter {
 
     for (var i = 0; i < ciudades.length; i++) {
       var ciudad = ciudades[i];
+      var paintNodo =
+          Paint()
+            ..color = colores[i]
+            ..style = PaintingStyle.fill;
       canvas.drawCircle(ciudad, tam / 2, paintNodo);
-
       var labelText = TextSpan(text: nombres[i], style: estiloTexto);
       var tpLabel = TextPainter(
         text: labelText,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:proyecto_moviles/conexion.dart';
 import 'package:proyecto_moviles/lienzopainter.dart';
 
@@ -13,23 +14,30 @@ class _LienzoState extends State<Lienzo> {
   List<Offset> ciudades = [];
   List<String> nombresCiudades = [];
   List<Conexion> conexiones = [];
+  List<Color> coloresCiudades = [];
   double tamvalue = 10;
   bool modoAgregar = false;
   bool modoConectar = false;
   bool modoEliminar = false;
   bool modoEditar = false;
-  int? ciudadSeleccionada; // índice del nodo arrastrado o seleccionado
+  bool modoColor = false;
+  int? ciudadSeleccionada;
   double toleranciaToque = 10.0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: GestureDetector(
-        // Inicia arrastre si toco un nodo y ningún modo está activo
         onPanStart: (DragStartDetails details) {
           Offset pos = details.localPosition;
-          if (!modoAgregar && !modoConectar && !modoEliminar && !modoEditar) {
-            for (int i = 0; i < ciudades.length; i++) {
+          if (![
+            modoAgregar,
+            modoConectar,
+            modoEliminar,
+            modoEditar,
+            modoColor,
+          ].any((m) => m)) {
+            for (var i = 0; i < ciudades.length; i++) {
               if ((ciudades[i] - pos).distance <= tamvalue) {
                 ciudadSeleccionada = i;
                 break;
@@ -37,23 +45,23 @@ class _LienzoState extends State<Lienzo> {
             }
           }
         },
-        // Durante el arrastre, actualizo posición del nodo
         onPanUpdate: (DragUpdateDetails details) {
           if (ciudadSeleccionada != null &&
-              !modoAgregar &&
-              !modoConectar &&
-              !modoEliminar &&
-              !modoEditar) {
+              ![
+                modoAgregar,
+                modoConectar,
+                modoEliminar,
+                modoEditar,
+                modoColor,
+              ].any((m) => m)) {
             setState(() {
               ciudades[ciudadSeleccionada!] = details.localPosition;
             });
           }
         },
-        // Al soltar, dejo de arrastrar
         onPanEnd: (DragEndDetails details) {
           ciudadSeleccionada = null;
         },
-        // Y mantenemos también la lógica de taps para los modos
         onTapDown: (TapDownDetails details) {
           Offset tapPos = details.localPosition;
 
@@ -61,6 +69,7 @@ class _LienzoState extends State<Lienzo> {
             setState(() {
               ciudades.add(tapPos);
               nombresCiudades.add('Ciudad ${ciudades.length}');
+              coloresCiudades.add(Colors.blue);
             });
           } else if (modoConectar) {
             for (int i = 0; i < ciudades.length; i++) {
@@ -93,19 +102,24 @@ class _LienzoState extends State<Lienzo> {
               }
             }
           } else if (modoEditar) {
-            // Tocar nodo para editar nombre
             for (int i = 0; i < ciudades.length; i++) {
               if ((ciudades[i] - tapPos).distance <= tamvalue) {
                 mostrarDialogoNombre(i);
                 return;
               }
             }
-            // Tocar conexión para editar peso
             for (int i = 0; i < conexiones.length; i++) {
               Offset p1 = ciudades[conexiones[i].ciudad1];
               Offset p2 = ciudades[conexiones[i].ciudad2];
               if (estaCerca(tapPos, p1, p2)) {
                 mostrarDialogoPeso(i);
+                return;
+              }
+            }
+          } else if (modoColor) {
+            for (var i = 0; i < ciudades.length; i++) {
+              if ((ciudades[i] - tapPos).distance <= tamvalue) {
+                mostrarColorPicker(i);
                 return;
               }
             }
@@ -115,6 +129,7 @@ class _LienzoState extends State<Lienzo> {
           painter: LienzoPainter(
             ciudades,
             nombresCiudades,
+            coloresCiudades,
             tamvalue,
             conexiones,
           ),
@@ -222,6 +237,20 @@ class _LienzoState extends State<Lienzo> {
                         ciudadSeleccionada = null;
                       }),
                 ),
+                IconButton(
+                  icon: Icon(
+                    Icons.color_lens,
+                    color: modoColor ? Colors.purple : Colors.grey,
+                  ),
+                  tooltip: modoColor ? "Modo color" : "Activar color",
+                  onPressed:
+                      () => setState(() {
+                        modoColor = !modoColor;
+                        modoAgregar =
+                            modoConectar = modoEliminar = modoEditar = false;
+                        ciudadSeleccionada = null;
+                      }),
+                ),
               ],
             ),
           ),
@@ -302,6 +331,36 @@ class _LienzoState extends State<Lienzo> {
                     () => nombresCiudades[indexCiudad] = controller.text,
                   );
                   Navigator.pop(context);
+                },
+                child: const Text("Guardar"),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void mostrarColorPicker(int idx) {
+    Color pickerColor = coloresCiudades[idx];
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: Text("Color de ${nombresCiudades[idx]}"),
+            content: SingleChildScrollView(
+              child: BlockPicker(
+                pickerColor: pickerColor,
+                onColorChanged: (c) => pickerColor = c,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Cancelar"),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() => coloresCiudades[idx] = pickerColor);
+                  Navigator.pop(ctx);
                 },
                 child: const Text("Guardar"),
               ),
