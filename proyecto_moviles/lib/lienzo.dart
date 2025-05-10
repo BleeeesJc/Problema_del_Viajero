@@ -18,13 +18,42 @@ class _LienzoState extends State<Lienzo> {
   bool modoConectar = false;
   bool modoEliminar = false;
   bool modoEditar = false;
-  int? ciudadSeleccionada;
+  int? ciudadSeleccionada; // índice del nodo arrastrado o seleccionado
   double toleranciaToque = 10.0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: GestureDetector(
+        // Inicia arrastre si toco un nodo y ningún modo está activo
+        onPanStart: (DragStartDetails details) {
+          Offset pos = details.localPosition;
+          if (!modoAgregar && !modoConectar && !modoEliminar && !modoEditar) {
+            for (int i = 0; i < ciudades.length; i++) {
+              if ((ciudades[i] - pos).distance <= tamvalue) {
+                ciudadSeleccionada = i;
+                break;
+              }
+            }
+          }
+        },
+        // Durante el arrastre, actualizo posición del nodo
+        onPanUpdate: (DragUpdateDetails details) {
+          if (ciudadSeleccionada != null &&
+              !modoAgregar &&
+              !modoConectar &&
+              !modoEliminar &&
+              !modoEditar) {
+            setState(() {
+              ciudades[ciudadSeleccionada!] = details.localPosition;
+            });
+          }
+        },
+        // Al soltar, dejo de arrastrar
+        onPanEnd: (DragEndDetails details) {
+          ciudadSeleccionada = null;
+        },
+        // Y mantenemos también la lógica de taps para los modos
         onTapDown: (TapDownDetails details) {
           Offset tapPos = details.localPosition;
 
@@ -64,14 +93,14 @@ class _LienzoState extends State<Lienzo> {
               }
             }
           } else if (modoEditar) {
-            // Primero, si toca cerca de una ciudad, editar nombre
+            // Tocar nodo para editar nombre
             for (int i = 0; i < ciudades.length; i++) {
               if ((ciudades[i] - tapPos).distance <= tamvalue) {
                 mostrarDialogoNombre(i);
                 return;
               }
             }
-            // Si no, verifica conexiones para editar peso
+            // Tocar conexión para editar peso
             for (int i = 0; i < conexiones.length; i++) {
               Offset p1 = ciudades[conexiones[i].ciudad1];
               Offset p2 = ciudades[conexiones[i].ciudad2];
@@ -99,7 +128,7 @@ class _LienzoState extends State<Lienzo> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                Padding(
+                const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8.0),
                   child: Text("Tamaño:"),
                 ),
@@ -183,7 +212,7 @@ class _LienzoState extends State<Lienzo> {
                       }),
                 ),
                 IconButton(
-                  icon: Icon(Icons.delete_forever),
+                  icon: const Icon(Icons.delete_forever),
                   tooltip: "Borrar todo",
                   onPressed:
                       () => setState(() {
@@ -223,16 +252,16 @@ class _LienzoState extends State<Lienzo> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text("Editar peso"),
+            title: const Text("Editar peso"),
             content: TextField(
               controller: controller,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: "Peso"),
+              decoration: const InputDecoration(labelText: "Peso"),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text("Cancelar"),
+                child: const Text("Cancelar"),
               ),
               TextButton(
                 onPressed: () {
@@ -242,7 +271,7 @@ class _LienzoState extends State<Lienzo> {
                     Navigator.pop(context);
                   }
                 },
-                child: Text("Guardar"),
+                child: const Text("Guardar"),
               ),
             ],
           ),
@@ -257,15 +286,15 @@ class _LienzoState extends State<Lienzo> {
       context: context,
       builder:
           (context) => AlertDialog(
-            title: Text("Editar nombre"),
+            title: const Text("Editar nombre"),
             content: TextField(
               controller: controller,
-              decoration: InputDecoration(labelText: "Nombre ciudad"),
+              decoration: const InputDecoration(labelText: "Nombre ciudad"),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text("Cancelar"),
+                child: const Text("Cancelar"),
               ),
               TextButton(
                 onPressed: () {
@@ -274,7 +303,7 @@ class _LienzoState extends State<Lienzo> {
                   );
                   Navigator.pop(context);
                 },
-                child: Text("Guardar"),
+                child: const Text("Guardar"),
               ),
             ],
           ),
