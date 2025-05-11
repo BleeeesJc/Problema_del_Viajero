@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import 'package:proyecto_moviles/algortimogen.dart';
 import 'package:proyecto_moviles/conexion.dart';
 import 'package:proyecto_moviles/lienzopainter.dart';
 
@@ -29,7 +30,6 @@ class _LienzoState extends State<Lienzo> {
     return Scaffold(
       body: Column(
         children: [
-          // Barra de herramientas arriba
           SizedBox(
             height: 60,
             child: SingleChildScrollView(
@@ -149,7 +149,6 @@ class _LienzoState extends State<Lienzo> {
               ),
             ),
           ),
-          // Lienzo debajo
           Expanded(
             child: GestureDetector(
               onPanStart: (DragStartDetails details) {
@@ -267,7 +266,27 @@ class _LienzoState extends State<Lienzo> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(onPressed: () {}),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          if (ciudadSeleccionada == null) {
+            setState(() {
+              modoAgregar = false;
+              modoConectar = false;
+              modoEliminar = false;
+              modoEditar = false;
+              modoColor = false;
+            });
+            mostrarSeleccionCiudadInicio();
+          } else {
+            resolverTSP();
+          }
+        },
+        tooltip:
+            ciudadSeleccionada == null
+                ? "Seleccionar ciudad de inicio"
+                : "Resolver TSP",
+        child: const Icon(Icons.route),
+      ),
     );
   }
 
@@ -375,6 +394,72 @@ class _LienzoState extends State<Lienzo> {
                   Navigator.pop(ctx);
                 },
                 child: const Text("Guardar"),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void mostrarSeleccionCiudadInicio() {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text("Seleccionar ciudad de inicio"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(ciudades.length, (index) {
+                return ListTile(
+                  title: Text(nombresCiudades[index]),
+                  onTap: () {
+                    setState(() {
+                      ciudadSeleccionada =
+                          index; // Guardar la ciudad seleccionada
+                    });
+                    Navigator.pop(ctx); // Cerrar el diálogo
+                  },
+                );
+              }),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Cancelar"),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void resolverTSP() {
+    if (ciudades.length < 2 || conexiones.isEmpty) return;
+
+    int startCity = ciudadSeleccionada ?? 0;
+
+    List<int> ruta = AlgoritmoGenetico.resolver(
+      startCity: startCity,
+      ciudades: ciudades,
+      conexiones: conexiones,
+      populationSize: 100,
+      generations: 200,
+      mutationRate: 0.05,
+    );
+
+    double distancia = AlgoritmoGenetico.calcularDistancia(ruta, conexiones);
+
+    showDialog(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            title: const Text("Ruta Óptima"),
+            content: Text(
+              "${ruta.map((i) => nombresCiudades[i]).join(" → ")}\n"
+              "Distancia total: ${distancia.toStringAsFixed(2)}",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Cerrar"),
               ),
             ],
           ),
