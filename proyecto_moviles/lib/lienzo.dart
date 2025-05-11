@@ -27,235 +27,247 @@ class _LienzoState extends State<Lienzo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GestureDetector(
-        onPanStart: (DragStartDetails details) {
-          Offset pos = details.localPosition;
-          if (![
-            modoAgregar,
-            modoConectar,
-            modoEliminar,
-            modoEditar,
-            modoColor,
-          ].any((m) => m)) {
-            for (var i = 0; i < ciudades.length; i++) {
-              if ((ciudades[i] - pos).distance <= tamvalue) {
-                ciudadSeleccionada = i;
-                break;
-              }
-            }
-          }
-        },
-        onPanUpdate: (DragUpdateDetails details) {
-          if (ciudadSeleccionada != null &&
-              ![
-                modoAgregar,
-                modoConectar,
-                modoEliminar,
-                modoEditar,
-                modoColor,
-              ].any((m) => m)) {
-            setState(() {
-              ciudades[ciudadSeleccionada!] = details.localPosition;
-            });
-          }
-        },
-        onPanEnd: (DragEndDetails details) {
-          ciudadSeleccionada = null;
-        },
-        onTapDown: (TapDownDetails details) {
-          Offset tapPos = details.localPosition;
-
-          if (modoAgregar) {
-            setState(() {
-              ciudades.add(tapPos);
-              nombresCiudades.add('Ciudad ${ciudades.length}');
-              coloresCiudades.add(Colors.blue);
-            });
-          } else if (modoConectar) {
-            for (int i = 0; i < ciudades.length; i++) {
-              if ((ciudades[i] - tapPos).distance <= tamvalue) {
-                setState(() {
-                  if (ciudadSeleccionada == null) {
-                    ciudadSeleccionada = i;
-                  } else if (ciudadSeleccionada != i) {
-                    bool existe = conexiones.any(
-                      (c) =>
-                          (c.ciudad1 == ciudadSeleccionada && c.ciudad2 == i) ||
-                          (c.ciudad1 == i && c.ciudad2 == ciudadSeleccionada),
-                    );
-                    if (!existe) {
-                      conexiones.add(Conexion(ciudadSeleccionada!, i, 1.0));
-                    }
-                    ciudadSeleccionada = null;
-                  }
-                });
-                break;
-              }
-            }
-          } else if (modoEliminar) {
-            for (int i = 0; i < conexiones.length; i++) {
-              Offset p1 = ciudades[conexiones[i].ciudad1];
-              Offset p2 = ciudades[conexiones[i].ciudad2];
-              if (estaCerca(tapPos, p1, p2)) {
-                setState(() => conexiones.removeAt(i));
-                break;
-              }
-            }
-          } else if (modoEditar) {
-            for (int i = 0; i < ciudades.length; i++) {
-              if ((ciudades[i] - tapPos).distance <= tamvalue) {
-                mostrarDialogoNombre(i);
-                return;
-              }
-            }
-            for (int i = 0; i < conexiones.length; i++) {
-              Offset p1 = ciudades[conexiones[i].ciudad1];
-              Offset p2 = ciudades[conexiones[i].ciudad2];
-              if (estaCerca(tapPos, p1, p2)) {
-                mostrarDialogoPeso(i);
-                return;
-              }
-            }
-          } else if (modoColor) {
-            for (var i = 0; i < ciudades.length; i++) {
-              if ((ciudades[i] - tapPos).distance <= tamvalue) {
-                mostrarColorPicker(i);
-                return;
-              }
-            }
-          }
-        },
-        child: CustomPaint(
-          painter: LienzoPainter(
-            ciudades,
-            nombresCiudades,
-            coloresCiudades,
-            tamvalue,
-            conexiones,
-          ),
-          size: Size.infinite,
-        ),
-      ),
-      bottomNavigationBar: BottomAppBar(
-        child: SizedBox(
-          height: 60,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Text("Tamaño:"),
-                ),
-                SizedBox(
-                  width: 150,
-                  height: 50,
-                  child: Slider(
-                    min: 1,
-                    max: 50,
-                    value: tamvalue,
-                    label: tamvalue.round().toString(),
-                    onChanged: (value) => setState(() => tamvalue = value),
+      body: Column(
+        children: [
+          // Barra de herramientas arriba
+          SizedBox(
+            height: 60,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text("Tamaño:"),
                   ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    modoAgregar ? Icons.location_on : Icons.location_off,
-                    color: modoAgregar ? Colors.green : Colors.grey,
+                  SizedBox(
+                    width: 150,
+                    height: 50,
+                    child: Slider(
+                      min: 1,
+                      max: 50,
+                      value: tamvalue,
+                      label: tamvalue.round().toString(),
+                      onChanged: (value) => setState(() => tamvalue = value),
+                    ),
                   ),
-                  tooltip: modoAgregar ? "Modo agregar" : "Activar agregar",
-                  onPressed:
-                      () => setState(() {
-                        modoAgregar = !modoAgregar;
-                        modoConectar = false;
-                        modoEliminar = false;
-                        modoEditar = false;
-                        ciudadSeleccionada = null;
-                      }),
-                ),
-                IconButton(
-                  icon: Icon(
-                    modoConectar ? Icons.share : Icons.share_outlined,
-                    color: modoConectar ? Colors.orange : Colors.grey,
+                  IconButton(
+                    icon: Icon(
+                      modoAgregar ? Icons.location_on : Icons.location_off,
+                      color: modoAgregar ? Colors.green : Colors.grey,
+                    ),
+                    tooltip: modoAgregar ? "Modo agregar" : "Activar agregar",
+                    onPressed:
+                        () => setState(() {
+                          modoAgregar = !modoAgregar;
+                          modoConectar = false;
+                          modoEliminar = false;
+                          modoEditar = false;
+                          ciudadSeleccionada = null;
+                        }),
                   ),
-                  tooltip: modoConectar ? "Modo conectar" : "Activar conectar",
-                  onPressed:
-                      () => setState(() {
-                        modoConectar = !modoConectar;
-                        modoAgregar = false;
-                        modoEliminar = false;
-                        modoEditar = false;
-                        ciudadSeleccionada = null;
-                      }),
-                ),
-                IconButton(
-                  icon: Icon(
-                    modoEliminar
-                        ? Icons.remove_circle
-                        : Icons.remove_circle_outline,
-                    color: modoEliminar ? Colors.red : Colors.grey,
+                  IconButton(
+                    icon: Icon(
+                      modoConectar ? Icons.share : Icons.share_outlined,
+                      color: modoConectar ? Colors.orange : Colors.grey,
+                    ),
+                    tooltip:
+                        modoConectar ? "Modo conectar" : "Activar conectar",
+                    onPressed:
+                        () => setState(() {
+                          modoConectar = !modoConectar;
+                          modoAgregar = false;
+                          modoEliminar = false;
+                          modoEditar = false;
+                          ciudadSeleccionada = null;
+                        }),
                   ),
-                  tooltip:
+                  IconButton(
+                    icon: Icon(
                       modoEliminar
-                          ? "Modo eliminar conexiones"
-                          : "Activar eliminar conexiones",
-                  onPressed:
-                      () => setState(() {
-                        modoEliminar = !modoEliminar;
-                        modoAgregar = false;
-                        modoConectar = false;
-                        modoEditar = false;
-                        ciudadSeleccionada = null;
-                      }),
-                ),
-                IconButton(
-                  icon: Icon(
-                    modoEditar ? Icons.edit : Icons.edit_outlined,
-                    color: modoEditar ? Colors.blue : Colors.grey,
+                          ? Icons.remove_circle
+                          : Icons.remove_circle_outline,
+                      color: modoEliminar ? Colors.red : Colors.grey,
+                    ),
+                    tooltip:
+                        modoEliminar
+                            ? "Modo eliminar conexiones"
+                            : "Activar eliminar conexiones",
+                    onPressed:
+                        () => setState(() {
+                          modoEliminar = !modoEliminar;
+                          modoAgregar = false;
+                          modoConectar = false;
+                          modoEditar = false;
+                          ciudadSeleccionada = null;
+                        }),
                   ),
-                  tooltip:
-                      modoEditar
-                          ? "Modo editar ciudad/peso"
-                          : "Activar editar ciudad/peso",
-                  onPressed:
-                      () => setState(() {
-                        modoEditar = !modoEditar;
-                        modoAgregar = false;
-                        modoConectar = false;
-                        modoEliminar = false;
-                        ciudadSeleccionada = null;
-                      }),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_forever),
-                  tooltip: "Borrar todo",
-                  onPressed:
-                      () => setState(() {
-                        ciudades.clear();
-                        nombresCiudades.clear();
-                        conexiones.clear();
-                        ciudadSeleccionada = null;
-                      }),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.color_lens,
-                    color: modoColor ? Colors.purple : Colors.grey,
+                  IconButton(
+                    icon: Icon(
+                      modoEditar ? Icons.edit : Icons.edit_outlined,
+                      color: modoEditar ? Colors.blue : Colors.grey,
+                    ),
+                    tooltip:
+                        modoEditar
+                            ? "Modo editar ciudad/peso"
+                            : "Activar editar ciudad/peso",
+                    onPressed:
+                        () => setState(() {
+                          modoEditar = !modoEditar;
+                          modoAgregar = false;
+                          modoConectar = false;
+                          modoEliminar = false;
+                          ciudadSeleccionada = null;
+                        }),
                   ),
-                  tooltip: modoColor ? "Modo color" : "Activar color",
-                  onPressed:
-                      () => setState(() {
-                        modoColor = !modoColor;
-                        modoAgregar =
-                            modoConectar = modoEliminar = modoEditar = false;
-                        ciudadSeleccionada = null;
-                      }),
-                ),
-              ],
+                  IconButton(
+                    icon: const Icon(Icons.delete_forever),
+                    tooltip: "Borrar todo",
+                    onPressed:
+                        () => setState(() {
+                          ciudades.clear();
+                          nombresCiudades.clear();
+                          conexiones.clear();
+                          ciudadSeleccionada = null;
+                        }),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.color_lens,
+                      color: modoColor ? Colors.purple : Colors.grey,
+                    ),
+                    tooltip: modoColor ? "Modo color" : "Activar color",
+                    onPressed:
+                        () => setState(() {
+                          modoColor = !modoColor;
+                          modoAgregar =
+                              modoConectar = modoEliminar = modoEditar = false;
+                          ciudadSeleccionada = null;
+                        }),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+          // Lienzo debajo
+          Expanded(
+            child: GestureDetector(
+              onPanStart: (DragStartDetails details) {
+                Offset pos = details.localPosition;
+                if (![
+                  modoAgregar,
+                  modoConectar,
+                  modoEliminar,
+                  modoEditar,
+                  modoColor,
+                ].any((m) => m)) {
+                  for (var i = 0; i < ciudades.length; i++) {
+                    if ((ciudades[i] - pos).distance <= tamvalue) {
+                      ciudadSeleccionada = i;
+                      break;
+                    }
+                  }
+                }
+              },
+              onPanUpdate: (DragUpdateDetails details) {
+                if (ciudadSeleccionada != null &&
+                    ![
+                      modoAgregar,
+                      modoConectar,
+                      modoEliminar,
+                      modoEditar,
+                      modoColor,
+                    ].any((m) => m)) {
+                  setState(() {
+                    ciudades[ciudadSeleccionada!] = details.localPosition;
+                  });
+                }
+              },
+              onPanEnd: (DragEndDetails details) {
+                ciudadSeleccionada = null;
+              },
+              onTapDown: (TapDownDetails details) {
+                Offset tapPos = details.localPosition;
+
+                if (modoAgregar) {
+                  setState(() {
+                    ciudades.add(tapPos);
+                    nombresCiudades.add('Ciudad ${ciudades.length}');
+                    coloresCiudades.add(Colors.blue);
+                  });
+                } else if (modoConectar) {
+                  for (int i = 0; i < ciudades.length; i++) {
+                    if ((ciudades[i] - tapPos).distance <= tamvalue) {
+                      setState(() {
+                        if (ciudadSeleccionada == null) {
+                          ciudadSeleccionada = i;
+                        } else if (ciudadSeleccionada != i) {
+                          bool existe = conexiones.any(
+                            (c) =>
+                                (c.ciudad1 == ciudadSeleccionada &&
+                                    c.ciudad2 == i) ||
+                                (c.ciudad1 == i &&
+                                    c.ciudad2 == ciudadSeleccionada),
+                          );
+                          if (!existe) {
+                            conexiones.add(
+                              Conexion(ciudadSeleccionada!, i, 1.0),
+                            );
+                          }
+                          ciudadSeleccionada = null;
+                        }
+                      });
+                      break;
+                    }
+                  }
+                } else if (modoEliminar) {
+                  for (int i = 0; i < conexiones.length; i++) {
+                    Offset p1 = ciudades[conexiones[i].ciudad1];
+                    Offset p2 = ciudades[conexiones[i].ciudad2];
+                    if (estaCerca(tapPos, p1, p2)) {
+                      setState(() => conexiones.removeAt(i));
+                      break;
+                    }
+                  }
+                } else if (modoEditar) {
+                  for (int i = 0; i < ciudades.length; i++) {
+                    if ((ciudades[i] - tapPos).distance <= tamvalue) {
+                      mostrarDialogoNombre(i);
+                      return;
+                    }
+                  }
+                  for (int i = 0; i < conexiones.length; i++) {
+                    Offset p1 = ciudades[conexiones[i].ciudad1];
+                    Offset p2 = ciudades[conexiones[i].ciudad2];
+                    if (estaCerca(tapPos, p1, p2)) {
+                      mostrarDialogoPeso(i);
+                      return;
+                    }
+                  }
+                } else if (modoColor) {
+                  for (var i = 0; i < ciudades.length; i++) {
+                    if ((ciudades[i] - tapPos).distance <= tamvalue) {
+                      mostrarColorPicker(i);
+                      return;
+                    }
+                  }
+                }
+              },
+              child: CustomPaint(
+                painter: LienzoPainter(
+                  ciudades,
+                  nombresCiudades,
+                  coloresCiudades,
+                  tamvalue,
+                  conexiones,
+                ),
+                size: Size.infinite,
+              ),
+            ),
+          ),
+        ],
       ),
+      floatingActionButton: FloatingActionButton(onPressed: () {}),
     );
   }
 

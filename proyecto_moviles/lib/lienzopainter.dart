@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:proyecto_moviles/ciudades.dart';
 import 'package:proyecto_moviles/conexion.dart';
 
 class LienzoPainter extends CustomPainter {
@@ -51,11 +52,12 @@ class LienzoPainter extends CustomPainter {
 
     for (var i = 0; i < ciudades.length; i++) {
       var ciudad = ciudades[i];
-      var paintNodo =
-          Paint()
-            ..color = colores[i]
-            ..style = PaintingStyle.fill;
-      canvas.drawCircle(ciudad, tam / 2, paintNodo);
+      Ciudades(
+        Offset(ciudad.dx - tam / 2, ciudad.dy - tam / 2),
+        tam,
+        tam,
+        colores[i],
+      ).paint(canvas, Size(tam, tam));
       var labelText = TextSpan(text: nombres[i], style: estiloTexto);
       var tpLabel = TextPainter(
         text: labelText,
