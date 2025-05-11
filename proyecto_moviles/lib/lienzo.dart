@@ -11,11 +11,12 @@ class Lienzo extends StatefulWidget {
   State<Lienzo> createState() => _LienzoState();
 }
 
-class _LienzoState extends State<Lienzo> {
+class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
   List<Offset> ciudades = [];
   List<String> nombresCiudades = [];
   List<Conexion> conexiones = [];
   List<Color> coloresCiudades = [];
+  List<int>? ruta;
   double tamvalue = 10;
   bool modoAgregar = false;
   bool modoConectar = false;
@@ -24,6 +25,21 @@ class _LienzoState extends State<Lienzo> {
   bool modoColor = false;
   int? ciudadSeleccionada;
   double toleranciaToque = 10.0;
+
+  AnimationController? controller;
+  Animation<double>? animation;
+  Offset? posViajero;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    controller?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,10 +141,14 @@ class _LienzoState extends State<Lienzo> {
                     tooltip: "Borrar todo",
                     onPressed:
                         () => setState(() {
+                          controller?.stop();
+                          controller?.dispose();
+                          controller = null;
                           ciudades.clear();
                           nombresCiudades.clear();
                           conexiones.clear();
                           ciudadSeleccionada = null;
+                          posViajero = null;
                         }),
                   ),
                   IconButton(
@@ -259,6 +279,9 @@ class _LienzoState extends State<Lienzo> {
                   coloresCiudades,
                   tamvalue,
                   conexiones,
+                  ruta,
+                  posViajero,
+                  tamvalue * 1.5,
                 ),
                 size: Size.infinite,
               ),
@@ -413,10 +436,9 @@ class _LienzoState extends State<Lienzo> {
                   title: Text(nombresCiudades[index]),
                   onTap: () {
                     setState(() {
-                      ciudadSeleccionada =
-                          index; // Guardar la ciudad seleccionada
+                      ciudadSeleccionada = index;
                     });
-                    Navigator.pop(ctx); // Cerrar el diálogo
+                    Navigator.pop(ctx);
                   },
                 );
               }),
@@ -433,10 +455,9 @@ class _LienzoState extends State<Lienzo> {
 
   void resolverTSP() {
     if (ciudades.length < 2 || conexiones.isEmpty) return;
-
     int startCity = ciudadSeleccionada ?? 0;
 
-    List<int> ruta = AlgoritmoGenetico.resolver(
+    List<int> nuevaRuta = AlgoritmoGenetico.resolver(
       startCity: startCity,
       ciudades: ciudades,
       conexiones: conexiones,
@@ -444,25 +465,63 @@ class _LienzoState extends State<Lienzo> {
       generations: 200,
       mutationRate: 0.05,
     );
+    int idx = nuevaRuta.indexOf(startCity);
+    if (idx > 0) {
+      List<int> rota = [
+        ...nuevaRuta.sublist(idx),
+        ...nuevaRuta.sublist(0, idx),
+      ];
+      nuevaRuta = rota;
+    }
 
-    double distancia = AlgoritmoGenetico.calcularDistancia(ruta, conexiones);
+    setState(() {
+      ruta = nuevaRuta;
+    });
+    animacion();
+  }
 
-    showDialog(
-      context: context,
-      builder:
-          (_) => AlertDialog(
-            title: const Text("Ruta Óptima"),
-            content: Text(
-              "${ruta.map((i) => nombresCiudades[i]).join(" → ")}\n"
-              "Distancia total: ${distancia.toStringAsFixed(2)}",
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cerrar"),
-              ),
-            ],
-          ),
+  void animacion() {
+    if (ruta == null || ruta!.length < 2) return;
+    List<Offset> puntosRuta = [];
+    List<double> distSegmentos = [];
+    double totalDist = 0;
+
+    for (int i = 0; i < ruta!.length - 1; i++) {
+      Offset a = ciudades[ruta![i]];
+      Offset b = ciudades[ruta![i + 1]];
+      puntosRuta.add(a);
+      double d = (b - a).distance;
+      distSegmentos.add(d);
+      totalDist += d;
+    }
+    puntosRuta.add(ciudades[ruta!.last]);
+    controller?.dispose();
+    controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: (totalDist * 10).toInt()),
     );
+
+    animation =
+        Tween<double>(begin: 0, end: totalDist).animate(controller!)
+          ..addListener(() {
+            double recorrido = animation!.value;
+            double acumulado = 0;
+            for (int i = 0; i < distSegmentos.length; i++) {
+              if (recorrido <= acumulado + distSegmentos[i]) {
+                double t = (recorrido - acumulado) / distSegmentos[i];
+                Offset p0 = puntosRuta[i];
+                Offset p1 = puntosRuta[i + 1];
+                posViajero = Offset.lerp(p0, p1, t);
+                break;
+              }
+              acumulado += distSegmentos[i];
+            }
+            setState(() {});
+          })
+          ..addStatusListener((status) {
+            if (status == AnimationStatus.completed) {}
+          });
+
+    controller!.forward(from: 0);
   }
 }
