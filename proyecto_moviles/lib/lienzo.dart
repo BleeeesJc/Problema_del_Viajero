@@ -17,7 +17,7 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
   List<Conexion> conexiones = [];
   List<Color> coloresCiudades = [];
   List<int>? ruta;
-  double tamvalue = 10;
+  double tamvalue = 50;
   bool modoAgregar = false;
   bool modoConectar = false;
   bool modoEliminar = false;
@@ -25,6 +25,9 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
   bool modoColor = false;
   int? ciudadSeleccionada;
   double toleranciaToque = 10.0;
+  double velocidadAnimacion = 1.0;
+  bool animacionPausada = false;
+  Duration? baseDuration;
 
   AnimationController? controller;
   Animation<double>? animation;
@@ -43,6 +46,12 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    var ancho = MediaQuery.of(context).size.width;
+    var alto =
+        MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top;
+    var base = 400.0;
+    var scale = ancho / base;
+    var tamAbs = tamvalue * scale;
     return Scaffold(
       body: Column(
         children: [
@@ -50,7 +59,9 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
             height: 60,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: Row(
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
                 children: [
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8.0),
@@ -60,110 +71,135 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
                     width: 150,
                     height: 50,
                     child: Slider(
-                      min: 1,
-                      max: 50,
+                      min: 25,
+                      max: 100,
                       value: tamvalue,
                       label: tamvalue.round().toString(),
                       onChanged: (value) => setState(() => tamvalue = value),
                     ),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      modoAgregar ? Icons.location_on : Icons.location_off,
-                      color: modoAgregar ? Colors.green : Colors.grey,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                    child: IconButton(
+                      iconSize: 32.0,
+                      icon: Icon(
+                        modoAgregar ? Icons.add : Icons.add_outlined,
+                        color: modoAgregar ? Colors.green : Colors.grey,
+                      ),
+                      tooltip: modoAgregar ? "Modo agregar" : "Activar agregar",
+                      onPressed:
+                          () => setState(() {
+                            modoAgregar = !modoAgregar;
+                            modoConectar = false;
+                            modoEliminar = false;
+                            modoEditar = false;
+                            ciudadSeleccionada = null;
+                          }),
                     ),
-                    tooltip: modoAgregar ? "Modo agregar" : "Activar agregar",
-                    onPressed:
-                        () => setState(() {
-                          modoAgregar = !modoAgregar;
-                          modoConectar = false;
-                          modoEliminar = false;
-                          modoEditar = false;
-                          ciudadSeleccionada = null;
-                        }),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      modoConectar ? Icons.share : Icons.share_outlined,
-                      color: modoConectar ? Colors.orange : Colors.grey,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                    child: IconButton(
+                      iconSize: 32.0,
+                      icon: Icon(
+                        modoConectar ? Icons.link : Icons.link_off,
+                        color: modoConectar ? Colors.orange : Colors.grey,
+                      ),
+                      tooltip:
+                          modoConectar ? "Modo conectar" : "Activar conectar",
+                      onPressed:
+                          () => setState(() {
+                            modoConectar = !modoConectar;
+                            modoAgregar = false;
+                            modoEliminar = false;
+                            modoEditar = false;
+                            ciudadSeleccionada = null;
+                          }),
                     ),
-                    tooltip:
-                        modoConectar ? "Modo conectar" : "Activar conectar",
-                    onPressed:
-                        () => setState(() {
-                          modoConectar = !modoConectar;
-                          modoAgregar = false;
-                          modoEliminar = false;
-                          modoEditar = false;
-                          ciudadSeleccionada = null;
-                        }),
                   ),
-                  IconButton(
-                    icon: Icon(
-                      modoEliminar
-                          ? Icons.remove_circle
-                          : Icons.remove_circle_outline,
-                      color: modoEliminar ? Colors.red : Colors.grey,
-                    ),
-                    tooltip:
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                    child: IconButton(
+                      iconSize: 28.0,
+                      icon: Icon(
                         modoEliminar
-                            ? "Modo eliminar conexiones"
-                            : "Activar eliminar conexiones",
-                    onPressed:
-                        () => setState(() {
-                          modoEliminar = !modoEliminar;
-                          modoAgregar = false;
-                          modoConectar = false;
-                          modoEditar = false;
-                          ciudadSeleccionada = null;
-                        }),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      modoEditar ? Icons.edit : Icons.edit_outlined,
-                      color: modoEditar ? Colors.blue : Colors.grey,
+                            ? Icons.remove_circle
+                            : Icons.remove_circle_outline,
+                        color: modoEliminar ? Colors.red : Colors.grey,
+                      ),
+                      tooltip:
+                          modoEliminar
+                              ? "Modo eliminar conexiones/ciudad"
+                              : "Activar eliminar conexiones/ciudad",
+                      onPressed:
+                          () => setState(() {
+                            modoEliminar = !modoEliminar;
+                            modoAgregar = false;
+                            modoConectar = false;
+                            modoEditar = false;
+                            ciudadSeleccionada = null;
+                          }),
                     ),
-                    tooltip:
-                        modoEditar
-                            ? "Modo editar ciudad/peso"
-                            : "Activar editar ciudad/peso",
-                    onPressed:
-                        () => setState(() {
-                          modoEditar = !modoEditar;
-                          modoAgregar = false;
-                          modoConectar = false;
-                          modoEliminar = false;
-                          ciudadSeleccionada = null;
-                        }),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_forever),
-                    tooltip: "Borrar todo",
-                    onPressed:
-                        () => setState(() {
-                          controller?.stop();
-                          controller?.dispose();
-                          controller = null;
-                          ciudades.clear();
-                          nombresCiudades.clear();
-                          conexiones.clear();
-                          ciudadSeleccionada = null;
-                          posViajero = null;
-                        }),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.color_lens,
-                      color: modoColor ? Colors.purple : Colors.grey,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                    child: IconButton(
+                      iconSize: 28.0,
+                      icon: Icon(
+                        modoEditar ? Icons.edit : Icons.edit_outlined,
+                        color: modoEditar ? Colors.blue : Colors.grey,
+                      ),
+                      tooltip:
+                          modoEditar
+                              ? "Modo editar ciudad/peso"
+                              : "Activar editar ciudad/peso",
+                      onPressed:
+                          () => setState(() {
+                            modoEditar = !modoEditar;
+                            modoAgregar = false;
+                            modoConectar = false;
+                            modoEliminar = false;
+                            ciudadSeleccionada = null;
+                          }),
                     ),
-                    tooltip: modoColor ? "Modo color" : "Activar color",
-                    onPressed:
-                        () => setState(() {
-                          modoColor = !modoColor;
-                          modoAgregar =
-                              modoConectar = modoEliminar = modoEditar = false;
-                          ciudadSeleccionada = null;
-                        }),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                    child: IconButton(
+                      iconSize: 28.0,
+                      icon: const Icon(Icons.delete_forever),
+                      tooltip: "Borrar todo",
+                      onPressed:
+                          () => setState(() {
+                            controller?.stop();
+                            controller?.dispose();
+                            controller = null;
+                            ciudades.clear();
+                            nombresCiudades.clear();
+                            conexiones.clear();
+                            ciudadSeleccionada = null;
+                            posViajero = null;
+                          }),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                    child: IconButton(
+                      iconSize: 28.0,
+                      icon: Icon(
+                        Icons.color_lens,
+                        color: modoColor ? Colors.purple : Colors.grey,
+                      ),
+                      tooltip: modoColor ? "Modo color" : "Activar color",
+                      onPressed:
+                          () => setState(() {
+                            modoColor = !modoColor;
+                            modoAgregar =
+                                modoConectar =
+                                    modoEliminar = modoEditar = false;
+                            ciudadSeleccionada = null;
+                          }),
+                    ),
                   ),
                 ],
               ),
@@ -240,11 +276,30 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
                     }
                   }
                 } else if (modoEliminar) {
-                  for (int i = 0; i < conexiones.length; i++) {
-                    Offset p1 = ciudades[conexiones[i].ciudad1];
-                    Offset p2 = ciudades[conexiones[i].ciudad2];
+                  for (int i = 0; i < ciudades.length; i++) {
+                    if ((ciudades[i] - tapPos).distance <= tamvalue) {
+                      setState(() {
+                        ciudades.removeAt(i);
+                        nombresCiudades.removeAt(i);
+                        coloresCiudades.removeAt(i);
+                        conexiones.removeWhere(
+                          (c) => c.ciudad1 == i || c.ciudad2 == i,
+                        );
+                        for (var c in conexiones) {
+                          if (c.ciudad1 > i) c.ciudad1--;
+                          if (c.ciudad2 > i) c.ciudad2--;
+                        }
+                      });
+                      return;
+                    }
+                  }
+                  for (int j = 0; j < conexiones.length; j++) {
+                    Offset p1 = ciudades[conexiones[j].ciudad1];
+                    Offset p2 = ciudades[conexiones[j].ciudad2];
                     if (estaCerca(tapPos, p1, p2)) {
-                      setState(() => conexiones.removeAt(i));
+                      setState(() {
+                        conexiones.removeAt(j);
+                      });
                       break;
                     }
                   }
@@ -273,20 +328,48 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
                 }
               },
               child: CustomPaint(
+                size: Size(ancho, alto),
                 painter: LienzoPainter(
                   ciudades,
                   nombresCiudades,
                   coloresCiudades,
-                  tamvalue,
+                  tamAbs,
                   conexiones,
                   ruta,
                   posViajero,
-                  tamvalue * 1.5,
+                  tamAbs * 1.5,
                 ),
-                size: Size.infinite,
               ),
             ),
           ),
+          if (ruta != null)
+            Positioned(
+              bottom: 20,
+              left: 20,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 150,
+                    height: 50,
+                    child: Slider(
+                      min: 0.1,
+                      max: 3.0,
+                      divisions: 29,
+                      label: "${velocidadAnimacion.toStringAsFixed(1)}×",
+                      value: velocidadAnimacion,
+                      onChanged: velocidad,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      animacionPausada ? Icons.play_arrow : Icons.pause,
+                      size: 32,
+                    ),
+                    onPressed: pausa,
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -500,6 +583,7 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
       vsync: this,
       duration: Duration(milliseconds: (totalDist * 10).toInt()),
     );
+    baseDuration = controller!.duration!;
 
     animation =
         Tween<double>(begin: 0, end: totalDist).animate(controller!)
@@ -523,5 +607,31 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
           });
 
     controller!.forward(from: 0);
+  }
+
+  void velocidad(double value) {
+    setState(() {
+      velocidadAnimacion = value;
+      if (controller != null && baseDuration != null) {
+        final newMillis =
+            (baseDuration!.inMilliseconds / velocidadAnimacion).round();
+        controller!.duration = Duration(milliseconds: newMillis);
+        if (!animacionPausada) {
+          controller!.forward(from: controller!.value);
+        }
+      }
+    });
+  }
+
+  void pausa() {
+    setState(() {
+      if (controller == null) return;
+      if (animacionPausada) {
+        controller!.forward(from: controller!.value);
+      } else {
+        controller!.stop();
+      }
+      animacionPausada = !animacionPausada;
+    });
   }
 }

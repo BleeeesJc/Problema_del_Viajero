@@ -29,14 +29,14 @@ class LienzoPainter extends CustomPainter {
     Paint paintNormal =
         Paint()
           ..color = Colors.black
-          ..strokeWidth = 2;
+          ..strokeWidth = tam * 0.02;
 
     Paint paintRuta =
         Paint()
           ..color = Colors.red
-          ..strokeWidth = 4;
+          ..strokeWidth = tam * 0.04;
 
-    var estiloTexto = TextStyle(color: Colors.black, fontSize: 12);
+    double pesoFontSize = tam * 0.20;
     for (var conexion in conexiones) {
       var c1 = ciudades[conexion.ciudad1];
       var c2 = ciudades[conexion.ciudad2];
@@ -53,20 +53,24 @@ class LienzoPainter extends CustomPainter {
         }
       }
       canvas.drawLine(c1, c2, enRuta ? paintRuta : paintNormal);
-      var centro = Offset((c1.dx + c2.dx) / 2, (c1.dy + c2.dy) / 2);
-      var pesoText = TextSpan(
-        text: conexion.peso.toStringAsFixed(1),
-        style: estiloTexto,
+      TextStyle estiloPeso = TextStyle(
+        color: Colors.black,
+        fontSize: pesoFontSize,
       );
-      var tpPeso = TextPainter(
+      TextSpan pesoText = TextSpan(
+        text: conexion.peso.toStringAsFixed(1),
+        style: estiloPeso,
+      );
+      TextPainter tpPeso = TextPainter(
         text: pesoText,
         textAlign: TextAlign.center,
         textDirection: TextDirection.ltr,
-      );
-      tpPeso.layout();
-      var posicionPeso = Offset(
+      )..layout();
+
+      Offset centro = Offset((c1.dx + c2.dx) / 2, (c1.dy + c2.dy) / 1.95);
+      Offset posicionPeso = Offset(
         centro.dx - tpPeso.width / 2,
-        centro.dy - tpPeso.height / 2 + 8,
+        centro.dy - tpPeso.height / 2 + tam * 0.08, // separación proporcional
       );
       tpPeso.paint(canvas, posicionPeso);
     }
@@ -78,6 +82,12 @@ class LienzoPainter extends CustomPainter {
         tam,
         colores[i],
       ).paint(canvas, Size(tam, tam));
+
+      double textoFontSize = tam * 0.2;
+      TextStyle estiloTexto = TextStyle(
+        color: Colors.black,
+        fontSize: textoFontSize,
+      );
 
       var labelText = TextSpan(text: nombres[i], style: estiloTexto);
       var tpLabel = TextPainter(
