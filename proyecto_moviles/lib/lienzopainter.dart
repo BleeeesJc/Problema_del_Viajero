@@ -1,6 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:proyecto_moviles/ciudades.dart';
 import 'package:proyecto_moviles/conexion.dart';
+import 'package:proyecto_moviles/conexiones.dart';
 import 'package:proyecto_moviles/viajero.dart';
 
 class LienzoPainter extends CustomPainter {
@@ -21,30 +24,26 @@ class LienzoPainter extends CustomPainter {
     this.conexiones, [
     this.ruta,
     this.posViajero,
-    this.tamViajero = 20,
+    this.tamViajero = 15,
   ]);
 
   @override
   void paint(Canvas canvas, Size canvasSize) {
-    Paint paintNormal =
-        Paint()
-          ..color = Colors.black
-          ..strokeWidth = tam * 0.02;
-
-    Paint paintRuta =
-        Paint()
-          ..color = Colors.red
-          ..strokeWidth = tam * 0.04;
-
     double pesoFontSize = tam * 0.20;
+    TextStyle textStylePeso = TextStyle(
+      color: Colors.black,
+      fontSize: pesoFontSize,
+    );
+
     for (var conexion in conexiones) {
-      var c1 = ciudades[conexion.ciudad1];
-      var c2 = ciudades[conexion.ciudad2];
+      var p1 = ciudades[conexion.ciudad1];
+      var p2 = ciudades[conexion.ciudad2];
+
       bool enRuta = false;
       if (ruta != null) {
         for (int i = 0; i < ruta!.length - 1; i++) {
-          int a = ruta![i];
-          int b = ruta![i + 1];
+          var a = ruta![i];
+          var b = ruta![i + 1];
           if ((a == conexion.ciudad1 && b == conexion.ciudad2) ||
               (a == conexion.ciudad2 && b == conexion.ciudad1)) {
             enRuta = true;
@@ -52,54 +51,90 @@ class LienzoPainter extends CustomPainter {
           }
         }
       }
-      canvas.drawLine(c1, c2, enRuta ? paintRuta : paintNormal);
-      TextStyle estiloPeso = TextStyle(
-        color: Colors.black,
-        fontSize: pesoFontSize,
-      );
-      TextSpan pesoText = TextSpan(
+
+      Conexiones painter = Conexiones(p1, p2, enRuta, tam);
+      painter.paint(canvas, Size.zero);
+
+      double dx = p2.dx - p1.dx;
+      double dy = p2.dy - p1.dy;
+      double length = sqrt(dx * dx + dy * dy);
+      double ux = -dy / length;
+      double uy = dx / length;
+      Offset mid = Offset((p1.dx + p2.dx) / 2, (p1.dy + p2.dy) / 2);
+      Offset offsetPeso = mid + Offset(ux * tam * 0.2, uy * tam * 0.2);
+
+      TextSpan spanPeso = TextSpan(
         text: conexion.peso.toStringAsFixed(1),
-        style: estiloPeso,
+        style: textStylePeso,
       );
       TextPainter tpPeso = TextPainter(
-        text: pesoText,
+        text: spanPeso,
         textAlign: TextAlign.center,
         textDirection: TextDirection.ltr,
       )..layout();
 
-      Offset centro = Offset((c1.dx + c2.dx) / 2, (c1.dy + c2.dy) / 1.95);
-      Offset posicionPeso = Offset(
-        centro.dx - tpPeso.width / 2,
-        centro.dy - tpPeso.height / 2 + tam * 0.08, // separación proporcional
+      double padding = 4.0;
+      Rect rectBg = Rect.fromLTWH(
+        offsetPeso.dx - tpPeso.width / 2 - padding,
+        offsetPeso.dy - tpPeso.height / 2 - padding,
+        tpPeso.width + padding * 2,
+        tpPeso.height + padding * 2,
       );
-      tpPeso.paint(canvas, posicionPeso);
+      Paint paintBg = Paint()..color = Colors.white.withOpacity(0.8);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rectBg, Radius.circular(4)),
+        paintBg,
+      );
+
+      tpPeso.paint(
+        canvas,
+        Offset(
+          offsetPeso.dx - tpPeso.width / 2,
+          offsetPeso.dy - tpPeso.height / 2,
+        ),
+      );
     }
-    for (var i = 0; i < ciudades.length; i++) {
-      var ciudad = ciudades[i];
+
+    double textoFontSize = tam * 0.2;
+    TextStyle textStyleCiudad = TextStyle(
+      color: Colors.black,
+      fontSize: textoFontSize,
+    );
+
+    for (int i = 0; i < ciudades.length; i++) {
+      var c = ciudades[i];
+
       Ciudades(
-        Offset(ciudad.dx - tam / 2, ciudad.dy - tam / 2),
+        Offset(c.dx - tam / 2, c.dy - tam / 2),
         tam,
         tam,
         colores[i],
       ).paint(canvas, Size(tam, tam));
 
-      double textoFontSize = tam * 0.2;
-      TextStyle estiloTexto = TextStyle(
-        color: Colors.black,
-        fontSize: textoFontSize,
-      );
-
-      var labelText = TextSpan(text: nombres[i], style: estiloTexto);
-      var tpLabel = TextPainter(
-        text: labelText,
+      TextSpan spanLabel = TextSpan(text: nombres[i], style: textStyleCiudad);
+      TextPainter tpLabel = TextPainter(
+        text: spanLabel,
         textAlign: TextAlign.center,
         textDirection: TextDirection.ltr,
+      )..layout();
+
+      Offset offsetLabel = Offset(
+        c.dx - tpLabel.width / 2,
+        c.dy - tam / 2 - tpLabel.height - 4,
       );
-      tpLabel.layout();
-      var offsetLabel = Offset(
-        ciudad.dx - tpLabel.width / 2,
-        ciudad.dy + tam / 2 + 4,
+
+      Rect bgLabelRect = Rect.fromLTWH(
+        offsetLabel.dx - 2,
+        offsetLabel.dy - 2,
+        tpLabel.width + 4,
+        tpLabel.height + 4,
       );
+      Paint paintLabelBg = Paint()..color = Colors.white.withOpacity(0.9);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(bgLabelRect, Radius.circular(4)),
+        paintLabelBg,
+      );
+
       tpLabel.paint(canvas, offsetLabel);
     }
 

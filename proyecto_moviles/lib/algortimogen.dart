@@ -1,4 +1,3 @@
-// tsp_solver.dart
 import 'dart:math';
 import 'dart:ui';
 import 'conexion.dart';

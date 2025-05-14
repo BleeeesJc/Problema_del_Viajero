@@ -10,7 +10,7 @@ class Viajero extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    var paint =
+    Paint paint =
         Paint()
           ..style = PaintingStyle.fill
           ..color = color;
