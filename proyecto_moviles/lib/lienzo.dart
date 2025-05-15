@@ -334,8 +334,7 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
                         }
                       } else if (modoEditar) {
                         for (int i = 0; i < ciudades.length; i++) {
-                          if ((ciudades[i] - tapPos).distance <=
-                              toleranciaToque) {
+                          if ((ciudades[i] - tapPos).distance <= tamAbs) {
                             mostrarDialogoNombre(i);
                             return;
                           }
@@ -576,16 +575,17 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
 
   void resolverTSP() {
     if (ciudades.length < 2 || conexiones.isEmpty) return;
-    int startCity = ciudadSeleccionada ?? 0;
 
-    List<int> nuevaRuta = AlgoritmoGenetico.resolver(
+    int startCity = ciudadSeleccionada ?? 0;
+    AlgoritmoGenetico algoritmo = AlgoritmoGenetico(
       startCity: startCity,
       ciudades: ciudades,
       conexiones: conexiones,
-      populationSize: 100,
-      generations: 200,
-      mutationRate: 0.05,
+      populationSize: 200,
+      generations: 500,
+      mutationRate: 0.1,
     );
+    List<int> nuevaRuta = algoritmo.resolver();
     int idx = nuevaRuta.indexOf(startCity);
     if (idx > 0) {
       List<int> rota = [
@@ -594,6 +594,7 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
       ];
       nuevaRuta = rota;
     }
+
     nuevaRuta = nuevaRuta.reversed.toList();
     setState(() {
       ruta = nuevaRuta;
@@ -610,6 +611,7 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
       );
       sumaPesos += conexion.peso;
     }
+
     setState(() {
       pesoTotal = sumaPesos;
     });
