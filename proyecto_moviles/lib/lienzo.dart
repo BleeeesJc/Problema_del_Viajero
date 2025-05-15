@@ -466,7 +466,9 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
             content: TextField(
               controller: controller,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Peso"),
+              decoration: const InputDecoration(
+                labelText: "Peso (mayor que 0)",
+              ),
             ),
             actions: [
               TextButton(
@@ -476,10 +478,27 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
               TextButton(
                 onPressed: () {
                   double? nuevo = double.tryParse(controller.text);
-                  if (nuevo != null) {
-                    setState(() => conexiones[indexConexion].peso = nuevo);
-                    Navigator.pop(context);
+                  if (nuevo == null || nuevo <= 0) {
+                    showDialog(
+                      context: context,
+                      builder:
+                          (_) => AlertDialog(
+                            title: const Text("Peso inválido"),
+                            content: const Text(
+                              "El peso debe ser un número mayor que cero.",
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text("OK"),
+                              ),
+                            ],
+                          ),
+                    );
+                    return;
                   }
+                  setState(() => conexiones[indexConexion].peso = nuevo);
+                  Navigator.pop(context);
                 },
                 child: const Text("Guardar"),
               ),
@@ -553,12 +572,16 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
   void mostrarSeleccionCiudadInicio() {
     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text("Seleccionar ciudad de inicio"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(ciudades.length, (index) {
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text("Seleccionar ciudad de inicio"),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: MediaQuery.of(context).size.height * 0.5,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: ciudades.length,
+              itemBuilder: (context, index) {
                 return ListTile(
                   title: Text(nombresCiudades[index]),
                   onTap: () {
@@ -568,19 +591,42 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
                     Navigator.pop(ctx);
                   },
                 );
-              }),
+              },
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("Cancelar"),
-              ),
-            ],
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Cancelar"),
+            ),
+          ],
+        );
+      },
     );
   }
 
   void resolverTSP() {
+    var conexInvalidas = conexiones.where((c) => c.peso <= 0).toList();
+    if (conexInvalidas.isNotEmpty) {
+      showDialog(
+        context: context,
+        builder:
+            (_) => AlertDialog(
+              title: const Text("Error en conexiones"),
+              content: Text(
+                "Hay ${conexInvalidas.length} conexión(es) con peso 0 o negativo.\n"
+                "Por favor, corrige todos los pesos antes de continuar.",
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Entendido"),
+                ),
+              ],
+            ),
+      );
+      return;
+    }
     if (ciudades.length < 2 || conexiones.isEmpty) return;
 
     int startCity = ciudadSeleccionada ?? 0;
@@ -588,8 +634,8 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
       startCity: startCity,
       ciudades: ciudades,
       conexiones: conexiones,
-      populationSize: 200,
-      generations: 500,
+      populationSize: 100,
+      generations: 100,
       mutationRate: 0.1,
     );
     List<int> nuevaRuta = algoritmo.resolver();
