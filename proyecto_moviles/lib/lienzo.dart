@@ -63,154 +63,161 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                child: Row(
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text("Tamaño:"),
-                    ),
-                    SizedBox(
-                      width: 150,
-                      height: 50,
-                      child: Slider(
-                        min: 20,
-                        max: 100,
-                        value: tamvalue,
-                        label: tamvalue.round().toString(),
-                        onChanged: (value) => setState(() => tamvalue = value),
+              child: SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Text("Tamaño:"),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                      child: IconButton(
-                        iconSize: 32.0,
-                        icon: Icon(
-                          modoAgregar ? Icons.add : Icons.add_outlined,
-                          color: modoAgregar ? Colors.green : Colors.grey,
+                      SizedBox(
+                        width: 150,
+                        height: 50,
+                        child: Slider(
+                          min: 20,
+                          max: 100,
+                          value: tamvalue,
+                          label: tamvalue.round().toString(),
+                          onChanged:
+                              (value) => setState(() => tamvalue = value),
                         ),
-                        tooltip:
-                            modoAgregar ? "Modo agregar" : "Activar agregar",
-                        onPressed:
-                            () => setState(() {
-                              modoAgregar = !modoAgregar;
-                              modoConectar = false;
-                              modoEliminar = false;
-                              modoEditar = false;
-                              ciudadSeleccionada = null;
-                            }),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                      child: IconButton(
-                        iconSize: 32.0,
-                        icon: Icon(
-                          modoConectar ? Icons.link : Icons.link_off,
-                          color: modoConectar ? Colors.orange : Colors.grey,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                        child: IconButton(
+                          iconSize: 32.0,
+                          icon: Icon(
+                            modoAgregar ? Icons.add : Icons.add_outlined,
+                            color: modoAgregar ? Colors.green : Colors.grey,
+                          ),
+                          tooltip:
+                              modoAgregar ? "Modo agregar" : "Activar agregar",
+                          onPressed:
+                              () => setState(() {
+                                modoAgregar = !modoAgregar;
+                                modoConectar = false;
+                                modoEliminar = false;
+                                modoEditar = false;
+                                ciudadSeleccionada = null;
+                              }),
                         ),
-                        tooltip:
-                            modoConectar ? "Modo conectar" : "Activar conectar",
-                        onPressed:
-                            () => setState(() {
-                              modoConectar = !modoConectar;
-                              modoAgregar = false;
-                              modoEliminar = false;
-                              modoEditar = false;
-                              ciudadSeleccionada = null;
-                            }),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                      child: IconButton(
-                        iconSize: 28.0,
-                        icon: Icon(
-                          modoEliminar
-                              ? Icons.remove_circle
-                              : Icons.remove_circle_outline,
-                          color: modoEliminar ? Colors.red : Colors.grey,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                        child: IconButton(
+                          iconSize: 32.0,
+                          icon: Icon(
+                            modoConectar ? Icons.link : Icons.link_off,
+                            color: modoConectar ? Colors.orange : Colors.grey,
+                          ),
+                          tooltip:
+                              modoConectar
+                                  ? "Modo conectar"
+                                  : "Activar conectar",
+                          onPressed:
+                              () => setState(() {
+                                modoConectar = !modoConectar;
+                                modoAgregar = false;
+                                modoEliminar = false;
+                                modoEditar = false;
+                                ciudadSeleccionada = null;
+                              }),
                         ),
-                        tooltip:
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                        child: IconButton(
+                          iconSize: 28.0,
+                          icon: Icon(
                             modoEliminar
-                                ? "Modo eliminar conexiones/ciudad"
-                                : "Activar eliminar conexiones/ciudad",
-                        onPressed:
-                            () => setState(() {
-                              modoEliminar = !modoEliminar;
-                              modoAgregar = false;
-                              modoConectar = false;
-                              modoEditar = false;
-                              ciudadSeleccionada = null;
-                            }),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                      child: IconButton(
-                        iconSize: 28.0,
-                        icon: Icon(
-                          modoEditar ? Icons.edit : Icons.edit_outlined,
-                          color: modoEditar ? Colors.blue : Colors.grey,
+                                ? Icons.remove_circle
+                                : Icons.remove_circle_outline,
+                            color: modoEliminar ? Colors.red : Colors.grey,
+                          ),
+                          tooltip:
+                              modoEliminar
+                                  ? "Modo eliminar conexiones/ciudad"
+                                  : "Activar eliminar conexiones/ciudad",
+                          onPressed:
+                              () => setState(() {
+                                modoEliminar = !modoEliminar;
+                                modoAgregar = false;
+                                modoConectar = false;
+                                modoEditar = false;
+                                ciudadSeleccionada = null;
+                              }),
                         ),
-                        tooltip:
-                            modoEditar
-                                ? "Modo editar ciudad/peso"
-                                : "Activar editar ciudad/peso",
-                        onPressed:
-                            () => setState(() {
-                              modoEditar = !modoEditar;
-                              modoAgregar = false;
-                              modoConectar = false;
-                              modoEliminar = false;
-                              ciudadSeleccionada = null;
-                            }),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                      child: IconButton(
-                        iconSize: 28.0,
-                        icon: const Icon(Icons.delete_forever),
-                        tooltip: "Borrar todo",
-                        onPressed:
-                            () => setState(() {
-                              controller?.stop();
-                              controller?.dispose();
-                              controller = null;
-                              ciudades.clear();
-                              nombresCiudades.clear();
-                              conexiones.clear();
-                              ciudadSeleccionada = null;
-                              ruta = null;
-                              posViajero = null;
-                            }),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                      child: IconButton(
-                        iconSize: 28.0,
-                        icon: Icon(
-                          Icons.color_lens,
-                          color: modoColor ? Colors.purple : Colors.grey,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                        child: IconButton(
+                          iconSize: 28.0,
+                          icon: Icon(
+                            modoEditar ? Icons.edit : Icons.edit_outlined,
+                            color: modoEditar ? Colors.blue : Colors.grey,
+                          ),
+                          tooltip:
+                              modoEditar
+                                  ? "Modo editar ciudad/peso"
+                                  : "Activar editar ciudad/peso",
+                          onPressed:
+                              () => setState(() {
+                                modoEditar = !modoEditar;
+                                modoAgregar = false;
+                                modoConectar = false;
+                                modoEliminar = false;
+                                ciudadSeleccionada = null;
+                              }),
                         ),
-                        tooltip: modoColor ? "Modo color" : "Activar color",
-                        onPressed:
-                            () => setState(() {
-                              modoColor = !modoColor;
-                              modoAgregar =
-                                  modoConectar =
-                                      modoEliminar = modoEditar = false;
-                              ciudadSeleccionada = null;
-                            }),
                       ),
-                    ),
-                  ],
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                        child: IconButton(
+                          iconSize: 28.0,
+                          icon: const Icon(Icons.delete_forever),
+                          tooltip: "Borrar todo",
+                          onPressed:
+                              () => setState(() {
+                                controller?.stop();
+                                controller?.dispose();
+                                controller = null;
+                                ciudades.clear();
+                                nombresCiudades.clear();
+                                conexiones.clear();
+                                ciudadSeleccionada = null;
+                                ruta = null;
+                                posViajero = null;
+                              }),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                        child: IconButton(
+                          iconSize: 28.0,
+                          icon: Icon(
+                            Icons.color_lens,
+                            color: modoColor ? Colors.purple : Colors.grey,
+                          ),
+                          tooltip: modoColor ? "Modo color" : "Activar color",
+                          onPressed:
+                              () => setState(() {
+                                modoColor = !modoColor;
+                                modoAgregar =
+                                    modoConectar =
+                                        modoEliminar = modoEditar = false;
+                                ciudadSeleccionada = null;
+                              }),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
