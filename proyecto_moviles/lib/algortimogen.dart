@@ -20,7 +20,7 @@ class AlgoritmoGenetico {
     this.probMutacion = 0.05,
   });
 
-  final _rand = Random();
+  Random rand = Random();
 
   List<int> resolver() {
     var poblacionActual = poblacionInical();
@@ -46,7 +46,7 @@ class AlgoritmoGenetico {
     var lista = <Viajero>[];
     var base = List.generate(distancias.length, (i) => i);
     for (int i = 0; i < poblacion; i++) {
-      var ruta = List<int>.from(base)..shuffle(_rand);
+      var ruta = List<int>.from(base)..shuffle(rand);
       lista.add(Viajero(ruta, fitness(ruta)));
     }
     return lista;
@@ -62,14 +62,14 @@ class AlgoritmoGenetico {
   }
 
   Viajero seleccion(List<Viajero> pop) {
-    var torneo = List.generate(5, (_) => pop[_rand.nextInt(pop.length)]);
+    var torneo = List.generate(5, (_) => pop[rand.nextInt(pop.length)]);
     torneo.sort((a, b) => b.fitness.compareTo(a.fitness));
     return torneo.first;
   }
 
   Viajero crossover(Viajero p1, Viajero p2) {
-    int start = _rand.nextInt(p1.ruta.length);
-    int end = _rand.nextInt(p1.ruta.length);
+    int start = rand.nextInt(p1.ruta.length);
+    int end = rand.nextInt(p1.ruta.length);
     if (start > end) {
       var t = start;
       start = end;
@@ -90,9 +90,9 @@ class AlgoritmoGenetico {
   }
 
   void mutar(Viajero ind) {
-    if (_rand.nextDouble() < probMutacion) {
-      int i = _rand.nextInt(ind.ruta.length);
-      int j = _rand.nextInt(ind.ruta.length);
+    if (rand.nextDouble() < probMutacion) {
+      int i = rand.nextInt(ind.ruta.length);
+      int j = rand.nextInt(ind.ruta.length);
       var tmp = ind.ruta[i];
       ind.ruta[i] = ind.ruta[j];
       ind.ruta[j] = tmp;
