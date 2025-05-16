@@ -29,6 +29,17 @@ class LienzoPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size canvasSize) {
+    Set<String> aristasRuta = {};
+    if (ruta != null && ruta!.length > 1) {
+      for (int i = 0; i < ruta!.length; i++) {
+        int a = ruta![i];
+        int b = ruta![(i + 1) % ruta!.length];
+        int mn = a < b ? a : b;
+        int mx = a < b ? b : a;
+        aristasRuta.add('$mn-$mx');
+      }
+    }
+
     double pesoFontSize = tam * 0.20;
     TextStyle textStylePeso = TextStyle(
       color: Colors.black,
@@ -40,16 +51,16 @@ class LienzoPainter extends CustomPainter {
       var p2 = ciudades[conexion.ciudad2];
 
       bool enRuta = false;
-      if (ruta != null) {
-        for (int i = 0; i < ruta!.length - 1; i++) {
-          var a = ruta![i];
-          var b = ruta![i + 1];
-          if ((a == conexion.ciudad1 && b == conexion.ciudad2) ||
-              (a == conexion.ciudad2 && b == conexion.ciudad1)) {
-            enRuta = true;
-            break;
-          }
-        }
+      int mn =
+          conexion.ciudad1 < conexion.ciudad2
+              ? conexion.ciudad1
+              : conexion.ciudad2;
+      int mx =
+          conexion.ciudad1 < conexion.ciudad2
+              ? conexion.ciudad2
+              : conexion.ciudad1;
+      if (aristasRuta.contains('$mn-$mx')) {
+        enRuta = true;
       }
 
       Conexiones painter = Conexiones(p1, p2, enRuta, tam);

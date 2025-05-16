@@ -1,121 +1,101 @@
 import 'dart:math';
-import 'dart:ui';
-import 'conexion.dart';
+
+class Viajero {
+  List<int> ruta;
+  double fitness;
+
+  Viajero(this.ruta, this.fitness);
+}
 
 class AlgoritmoGenetico {
-  int startCity = 0;
-  List<Offset> ciudades = [];
-  List<Conexion> conexiones = [];
-  int populationSize = 200;
-  int generations = 300;
-  double mutationRate = 0.1;
+  final List<List<double>> distancias;
+  int poblacion;
+  int generaciones;
+  double probMutacion;
 
   AlgoritmoGenetico({
-    int? startCity,
-    List<Offset>? ciudades,
-    List<Conexion>? conexiones,
-    int? populationSize,
-    int? generations,
-    double? mutationRate,
-  }) {
-    this.startCity = startCity ?? 0;
-    this.ciudades = ciudades ?? [];
-    this.conexiones = conexiones ?? [];
-    this.populationSize = populationSize ?? 100;
-    this.generations = generations ?? 200;
-    this.mutationRate = mutationRate ?? 0.05;
-  }
+    required this.distancias,
+    this.poblacion = 100,
+    this.generaciones = 300,
+    this.probMutacion = 0.05,
+  });
+
+  final _rand = Random();
 
   List<int> resolver() {
-    List<int> allCities = List.generate(ciudades.length, (i) => i);
+    var poblacionActual = poblacionInical();
 
-    List<List<int>> population = List.generate(populationSize, (_) {
-      List<int> route = List.from(allCities);
-      route.remove(startCity);
-      route.shuffle();
-      route.insert(0, startCity);
-      route.add(startCity);
-      return route;
-    });
-
-    List<int> bestRoute = population.first;
-    double bestDistance = calcularDistancia(bestRoute);
-
-    for (int gen = 0; gen < generations; gen++) {
-      population.sort(
-        (a, b) => calcularDistancia(a).compareTo(calcularDistancia(b)),
-      );
-
-      if (calcularDistancia(population.first) < bestDistance) {
-        bestRoute = population.first;
-        bestDistance = calcularDistancia(bestRoute);
+    for (int gen = 0; gen < generaciones; gen++) {
+      List<Viajero> nuevaP = [];
+      for (int i = 0; i < poblacion; i++) {
+        var padre1 = seleccion(poblacionActual);
+        var padre2 = seleccion(poblacionActual);
+        var hijo = crossover(padre1, padre2);
+        mutar(hijo);
+        hijo.fitness = fitness(hijo.ruta);
+        nuevaP.add(hijo);
       }
-
-      List<List<int>> newPopulation = [];
-      for (int i = 0; i < populationSize ~/ 2; i++) {
-        List<int> p1 = population[i];
-        List<int> p2 = population[populationSize - i - 1];
-        List<int> child = crossover(p1, p2);
-        if (Random().nextDouble() < mutationRate) {
-          child = mutarRuta(child);
-        }
-        newPopulation.add(child);
-      }
-
-      population = [...population.take(populationSize ~/ 2), ...newPopulation];
+      poblacionActual = nuevaP;
     }
 
-    return bestRoute;
+    poblacionActual.sort((a, b) => b.fitness.compareTo(a.fitness));
+    return poblacionActual.first.ruta;
   }
 
-  double calcularDistancia(List<int> ruta) {
-    double distancia = 0.0;
+  List<Viajero> poblacionInical() {
+    var lista = <Viajero>[];
+    var base = List.generate(distancias.length, (i) => i);
+    for (int i = 0; i < poblacion; i++) {
+      var ruta = List<int>.from(base)..shuffle(_rand);
+      lista.add(Viajero(ruta, fitness(ruta)));
+    }
+    return lista;
+  }
+
+  double fitness(List<int> ruta) {
+    double total = 0;
     for (int i = 0; i < ruta.length - 1; i++) {
-      distancia += obtenerPeso(ruta[i], ruta[i + 1]);
+      total += distancias[ruta[i]][ruta[i + 1]];
     }
-    return distancia;
+    total += distancias[ruta.last][ruta.first];
+    return 1 / total;
   }
 
-  double obtenerPeso(int a, int b) {
-    for (var c in conexiones) {
-      if ((c.ciudad1 == a && c.ciudad2 == b) ||
-          (c.ciudad1 == b && c.ciudad2 == a)) {
-        return c.peso;
+  Viajero seleccion(List<Viajero> pop) {
+    var torneo = List.generate(5, (_) => pop[_rand.nextInt(pop.length)]);
+    torneo.sort((a, b) => b.fitness.compareTo(a.fitness));
+    return torneo.first;
+  }
+
+  Viajero crossover(Viajero p1, Viajero p2) {
+    int start = _rand.nextInt(p1.ruta.length);
+    int end = _rand.nextInt(p1.ruta.length);
+    if (start > end) {
+      var t = start;
+      start = end;
+      end = t;
+    }
+    var hijoRuta = List<int?>.filled(p1.ruta.length, null);
+    for (int i = start; i <= end; i++) {
+      hijoRuta[i] = p1.ruta[i];
+    }
+    int idx = 0;
+    for (var ciudad in p2.ruta) {
+      if (!hijoRuta.contains(ciudad)) {
+        while (hijoRuta[idx] != null) idx++;
+        hijoRuta[idx] = ciudad;
       }
     }
-    return 1e6;
+    return Viajero(hijoRuta.cast<int>(), 0);
   }
 
-  List<int> crossover(List<int> p1, List<int> p2) {
-    int size = p1.length - 2;
-    int startIndex = 1 + Random().nextInt(size);
-    int endIndex = startIndex + Random().nextInt(size - startIndex + 1);
-
-    List<int> childMiddle = p1.sublist(startIndex, endIndex);
-    List<int> rest =
-        p2.where((c) => c != startCity && !childMiddle.contains(c)).toList();
-
-    List<int> child = [
-      startCity,
-      ...rest.sublist(0, startIndex - 1),
-      ...childMiddle,
-      ...rest.sublist(startIndex - 1),
-    ];
-    child.add(startCity);
-    return child;
-  }
-
-  List<int> mutarRuta(List<int> ruta) {
-    int i = 1 + Random().nextInt(ruta.length - 3);
-    int j = 1 + Random().nextInt(ruta.length - 3);
-    if (i > j) {
-      var temp = i;
-      i = j;
-      j = temp;
+  void mutar(Viajero ind) {
+    if (_rand.nextDouble() < probMutacion) {
+      int i = _rand.nextInt(ind.ruta.length);
+      int j = _rand.nextInt(ind.ruta.length);
+      var tmp = ind.ruta[i];
+      ind.ruta[i] = ind.ruta[j];
+      ind.ruta[j] = tmp;
     }
-    var nueva = List<int>.from(ruta);
-    var sub = nueva.sublist(i, j + 1).reversed.toList();
-    nueva.replaceRange(i, j + 1, sub);
-    return nueva;
   }
 }

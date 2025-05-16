@@ -194,6 +194,8 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
                                 ciudadSeleccionada = null;
                                 ruta = null;
                                 posViajero = null;
+                                velocidadAnimacion = 1.0;
+                                animacionPausada = false;
                               }),
                         ),
                       ),
@@ -423,19 +425,12 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          if (ciudadSeleccionada == null) {
-            modoAgregar =
-                modoConectar = modoEliminar = modoEditar = modoColor = false;
-            ciudadSeleccionada = null;
-            mostrarSeleccionCiudadInicio();
-          } else {
-            resolverTSP();
-          }
+          resolverTSP();
         },
         backgroundColor: Colors.blueAccent,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.route),
-        label: Text(ciudadSeleccionada == null ? "Inicio" : "Resolver"),
+        label: const Text('Resolver'),
       ),
     );
   }
@@ -569,42 +564,6 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
     );
   }
 
-  void mostrarSeleccionCiudadInicio() {
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text("Seleccionar ciudad de inicio"),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: MediaQuery.of(context).size.height * 0.5,
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: ciudades.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(nombresCiudades[index]),
-                  onTap: () {
-                    setState(() {
-                      ciudadSeleccionada = index;
-                    });
-                    Navigator.pop(ctx);
-                  },
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text("Cancelar"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   void resolverTSP() {
     var conexInvalidas = conexiones.where((c) => c.peso <= 0).toList();
     if (conexInvalidas.isNotEmpty) {
@@ -627,67 +586,51 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
       );
       return;
     }
-    if (ciudades.length < 2 || conexiones.isEmpty) return;
-
-    int startCity = ciudadSeleccionada ?? 0;
-    AlgoritmoGenetico algoritmo = AlgoritmoGenetico(
-      startCity: startCity,
-      ciudades: ciudades,
-      conexiones: conexiones,
-      populationSize: 100,
-      generations: 100,
-      mutationRate: 0.1,
+    final int n = ciudades.length;
+    List<List<double>> matriz = List.generate(
+      n,
+      (_) => List<double>.filled(n, double.infinity),
     );
-    List<int> nuevaRuta = algoritmo.resolver();
-    int idx = nuevaRuta.indexOf(startCity);
-    if (idx > 0) {
-      List<int> rota = [
-        ...nuevaRuta.sublist(idx),
-        ...nuevaRuta.sublist(0, idx),
-      ];
-      nuevaRuta = rota;
+    for (var c in conexiones) {
+      matriz[c.ciudad1][c.ciudad2] = c.peso;
+      matriz[c.ciudad2][c.ciudad1] = c.peso;
     }
 
-    nuevaRuta = nuevaRuta.reversed.toList();
-    setState(() {
-      ruta = nuevaRuta;
-    });
-    double sumaPesos = 0;
-    for (int i = 0; i < ruta!.length - 1; i++) {
-      int a = ruta![i];
-      int b = ruta![i + 1];
-      final conexion = conexiones.firstWhere(
-        (c) =>
-            (c.ciudad1 == a && c.ciudad2 == b) ||
-            (c.ciudad1 == b && c.ciudad2 == a),
-        orElse: () => Conexion(a, b, 0),
-      );
-      sumaPesos += conexion.peso;
+    AlgoritmoGenetico gen = AlgoritmoGenetico(distancias: matriz);
+    List<int> mejorRuta = gen.resolver();
+    int idx0 = mejorRuta.indexOf(0);
+    if (idx0 > 0) {
+      mejorRuta = [...mejorRuta.sublist(idx0), ...mejorRuta.sublist(0, idx0)];
     }
-
     setState(() {
-      pesoTotal = sumaPesos;
+      ruta = mejorRuta;
+      pesoTotal = 0.0;
+      for (int i = 0; i < ruta!.length - 1; i++) {
+        pesoTotal = (pesoTotal ?? 0) + matriz[ruta![i]][ruta![i + 1]];
+      }
+      pesoTotal = (pesoTotal ?? 0) + matriz[ruta!.last][ruta!.first];
     });
-
     animacion();
   }
 
   void animacion() {
     if (ruta == null || ruta!.length < 2) return;
-    final rutaCorrecta = ruta!.reversed.toList();
     List<Offset> puntosRuta = [];
     List<double> distSegmentos = [];
     double totalDist = 0;
-
-    for (int i = 0; i < rutaCorrecta.length - 1; i++) {
-      Offset a = ciudades[rutaCorrecta[i]];
-      Offset b = ciudades[rutaCorrecta[i + 1]];
+    for (int i = 0; i < ruta!.length - 1; i++) {
+      Offset a = ciudades[ruta![i]];
+      Offset b = ciudades[ruta![i + 1]];
       puntosRuta.add(a);
       double d = (b - a).distance;
       distSegmentos.add(d);
       totalDist += d;
     }
-    puntosRuta.add(ciudades[rutaCorrecta.last]);
+    puntosRuta.add(ciudades[ruta!.last]);
+    Offset inicio = ciudades[ruta!.first];
+    double dRetorno = (inicio - ciudades[ruta!.last]).distance;
+    distSegmentos.add(dRetorno);
+    totalDist += dRetorno;
     controller?.dispose();
     controller = AnimationController(
       vsync: this,
@@ -695,26 +638,26 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
     );
     baseDuration = controller!.duration!;
 
-    animation =
-        Tween<double>(begin: 0, end: totalDist).animate(controller!)
-          ..addListener(() {
-            double recorrido = animation!.value;
-            double acumulado = 0;
-            for (int i = 0; i < distSegmentos.length; i++) {
-              if (recorrido <= acumulado + distSegmentos[i]) {
-                double t = (recorrido - acumulado) / distSegmentos[i];
-                Offset p0 = puntosRuta[i];
-                Offset p1 = puntosRuta[i + 1];
-                posViajero = Offset.lerp(p0, p1, t);
-                break;
-              }
-              acumulado += distSegmentos[i];
-            }
-            setState(() {});
-          })
-          ..addStatusListener((status) {
-            if (status == AnimationStatus.completed) {}
-          });
+    animation = Tween<double>(
+      begin: 0,
+      end: totalDist,
+    ).animate(controller!)..addListener(() {
+      double recorrido = animation!.value;
+      double acumulado = 0;
+
+      for (int i = 0; i < distSegmentos.length; i++) {
+        if (recorrido <= acumulado + distSegmentos[i]) {
+          double t = (recorrido - acumulado) / distSegmentos[i];
+          Offset p0 = puntosRuta[i];
+          Offset p1 = (i < ruta!.length - 1) ? ciudades[ruta![i + 1]] : inicio;
+          posViajero = Offset.lerp(p0, p1, t);
+          break;
+        }
+        acumulado += distSegmentos[i];
+      }
+
+      setState(() {});
+    });
 
     controller!.forward(from: 0);
   }
