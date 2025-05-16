@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:proyecto_moviles/algortimogen.dart';
@@ -241,141 +243,152 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: GestureDetector(
-                    onPanStart: (DragStartDetails details) {
-                      Offset pos = details.localPosition;
-                      if (controller != null) return;
-                      if (![
-                        modoAgregar,
-                        modoConectar,
-                        modoEliminar,
-                        modoEditar,
-                        modoColor,
-                      ].any((m) => m)) {
-                        for (var i = 0; i < ciudades.length; i++) {
-                          if ((ciudades[i] - pos).distance <= toleranciaToque) {
-                            ciudadSeleccionada = i;
-                            break;
+                  child: InteractiveViewer(
+                    boundaryMargin: const EdgeInsets.all(
+                      100,
+                    ), 
+                    minScale: 0.5,
+                    maxScale: 3.0,
+                    panEnabled: true,
+                    scaleEnabled: true,
+                    child: GestureDetector(
+                      onPanStart: (DragStartDetails details) {
+                        Offset pos = details.localPosition;
+                        if (controller != null) return;
+                        if (![
+                          modoAgregar,
+                          modoConectar,
+                          modoEliminar,
+                          modoEditar,
+                          modoColor,
+                        ].any((m) => m)) {
+                          for (var i = 0; i < ciudades.length; i++) {
+                            if ((ciudades[i] - pos).distance <=
+                                toleranciaToque) {
+                              ciudadSeleccionada = i;
+                              break;
+                            }
                           }
                         }
-                      }
-                    },
-                    onPanUpdate: (DragUpdateDetails details) {
-                      if (controller != null) return;
-                      if (ciudadSeleccionada != null &&
-                          ![
-                            modoAgregar,
-                            modoConectar,
-                            modoEliminar,
-                            modoEditar,
-                            modoColor,
-                          ].any((m) => m)) {
-                        setState(() {
-                          ciudades[ciudadSeleccionada!] = details.localPosition;
-                        });
-                      }
-                    },
-                    onPanEnd: (DragEndDetails details) {
-                      ciudadSeleccionada = null;
-                    },
-                    onTapDown: (TapDownDetails details) {
-                      Offset tapPos = details.localPosition;
+                      },
+                      onPanUpdate: (DragUpdateDetails details) {
+                        if (controller != null) return;
+                        if (ciudadSeleccionada != null &&
+                            ![
+                              modoAgregar,
+                              modoConectar,
+                              modoEliminar,
+                              modoEditar,
+                              modoColor,
+                            ].any((m) => m)) {
+                          setState(() {
+                            ciudades[ciudadSeleccionada!] =
+                                details.localPosition;
+                          });
+                        }
+                      },
+                      onPanEnd: (DragEndDetails details) {
+                        ciudadSeleccionada = null;
+                      },
+                      onTapDown: (TapDownDetails details) {
+                        Offset tapPos = details.localPosition;
 
-                      if (modoAgregar) {
-                        setState(() {
-                          ciudades.add(tapPos);
-                          nombresCiudades.add('Ciudad ${ciudades.length}');
-                          coloresCiudades.add(Colors.blue);
-                        });
-                      } else if (modoConectar) {
-                        for (int i = 0; i < ciudades.length; i++) {
-                          if ((ciudades[i] - tapPos).distance <=
-                              toleranciaToque) {
-                            setState(() {
-                              if (ciudadSeleccionada == null) {
-                                ciudadSeleccionada = i;
-                              } else if (ciudadSeleccionada != i) {
-                                bool existe = conexiones.any(
-                                  (c) =>
-                                      (c.ciudad1 == ciudadSeleccionada &&
-                                          c.ciudad2 == i) ||
-                                      (c.ciudad1 == i &&
-                                          c.ciudad2 == ciudadSeleccionada),
-                                );
-                                if (!existe) {
-                                  conexiones.add(
-                                    Conexion(ciudadSeleccionada!, i, 1.0),
+                        if (modoAgregar) {
+                          setState(() {
+                            ciudades.add(tapPos);
+                            nombresCiudades.add('Ciudad ${ciudades.length}');
+                            coloresCiudades.add(Colors.blue);
+                          });
+                        } else if (modoConectar) {
+                          for (int i = 0; i < ciudades.length; i++) {
+                            if ((ciudades[i] - tapPos).distance <=
+                                toleranciaToque) {
+                              setState(() {
+                                if (ciudadSeleccionada == null) {
+                                  ciudadSeleccionada = i;
+                                } else if (ciudadSeleccionada != i) {
+                                  bool existe = conexiones.any(
+                                    (c) =>
+                                        (c.ciudad1 == ciudadSeleccionada &&
+                                            c.ciudad2 == i) ||
+                                        (c.ciudad1 == i &&
+                                            c.ciudad2 == ciudadSeleccionada),
                                   );
+                                  if (!existe) {
+                                    conexiones.add(
+                                      Conexion(ciudadSeleccionada!, i, 1.0),
+                                    );
+                                  }
+                                  ciudadSeleccionada = null;
                                 }
-                                ciudadSeleccionada = null;
-                              }
-                            });
-                            break;
+                              });
+                              break;
+                            }
+                          }
+                        } else if (modoEliminar) {
+                          for (int i = 0; i < ciudades.length; i++) {
+                            if ((ciudades[i] - tapPos).distance <= tamvalue) {
+                              setState(() {
+                                ciudades.removeAt(i);
+                                nombresCiudades.removeAt(i);
+                                coloresCiudades.removeAt(i);
+                                conexiones.removeWhere(
+                                  (c) => c.ciudad1 == i || c.ciudad2 == i,
+                                );
+                                for (var c in conexiones) {
+                                  if (c.ciudad1 > i) c.ciudad1--;
+                                  if (c.ciudad2 > i) c.ciudad2--;
+                                }
+                              });
+                              return;
+                            }
+                          }
+                          for (int j = 0; j < conexiones.length; j++) {
+                            Offset p1 = ciudades[conexiones[j].ciudad1];
+                            Offset p2 = ciudades[conexiones[j].ciudad2];
+                            if (estaCerca(tapPos, p1, p2)) {
+                              setState(() {
+                                conexiones.removeAt(j);
+                              });
+                              break;
+                            }
+                          }
+                        } else if (modoEditar) {
+                          for (int i = 0; i < ciudades.length; i++) {
+                            if ((ciudades[i] - tapPos).distance <= tamAbs) {
+                              mostrarDialogoNombre(i);
+                              return;
+                            }
+                          }
+                          for (int i = 0; i < conexiones.length; i++) {
+                            Offset p1 = ciudades[conexiones[i].ciudad1];
+                            Offset p2 = ciudades[conexiones[i].ciudad2];
+                            if (estaCerca(tapPos, p1, p2)) {
+                              mostrarDialogoPeso(i);
+                              return;
+                            }
+                          }
+                        } else if (modoColor) {
+                          for (var i = 0; i < ciudades.length; i++) {
+                            if ((ciudades[i] - tapPos).distance <= tamvalue) {
+                              mostrarColorPicker(i);
+                              return;
+                            }
                           }
                         }
-                      } else if (modoEliminar) {
-                        for (int i = 0; i < ciudades.length; i++) {
-                          if ((ciudades[i] - tapPos).distance <= tamvalue) {
-                            setState(() {
-                              ciudades.removeAt(i);
-                              nombresCiudades.removeAt(i);
-                              coloresCiudades.removeAt(i);
-                              conexiones.removeWhere(
-                                (c) => c.ciudad1 == i || c.ciudad2 == i,
-                              );
-                              for (var c in conexiones) {
-                                if (c.ciudad1 > i) c.ciudad1--;
-                                if (c.ciudad2 > i) c.ciudad2--;
-                              }
-                            });
-                            return;
-                          }
-                        }
-                        for (int j = 0; j < conexiones.length; j++) {
-                          Offset p1 = ciudades[conexiones[j].ciudad1];
-                          Offset p2 = ciudades[conexiones[j].ciudad2];
-                          if (estaCerca(tapPos, p1, p2)) {
-                            setState(() {
-                              conexiones.removeAt(j);
-                            });
-                            break;
-                          }
-                        }
-                      } else if (modoEditar) {
-                        for (int i = 0; i < ciudades.length; i++) {
-                          if ((ciudades[i] - tapPos).distance <= tamAbs) {
-                            mostrarDialogoNombre(i);
-                            return;
-                          }
-                        }
-                        for (int i = 0; i < conexiones.length; i++) {
-                          Offset p1 = ciudades[conexiones[i].ciudad1];
-                          Offset p2 = ciudades[conexiones[i].ciudad2];
-                          if (estaCerca(tapPos, p1, p2)) {
-                            mostrarDialogoPeso(i);
-                            return;
-                          }
-                        }
-                      } else if (modoColor) {
-                        for (var i = 0; i < ciudades.length; i++) {
-                          if ((ciudades[i] - tapPos).distance <= tamvalue) {
-                            mostrarColorPicker(i);
-                            return;
-                          }
-                        }
-                      }
-                    },
-                    child: CustomPaint(
-                      size: Size(ancho, alto),
-                      painter: LienzoPainter(
-                        ciudades,
-                        nombresCiudades,
-                        coloresCiudades,
-                        tamAbs,
-                        conexiones,
-                        ruta,
-                        posViajero,
-                        tamAbs * 1.5,
+                      },
+                      child: CustomPaint(
+                        size: Size(ancho, alto),
+                        painter: LienzoPainter(
+                          ciudades,
+                          nombresCiudades,
+                          coloresCiudades,
+                          tamAbs,
+                          conexiones,
+                          ruta,
+                          posViajero,
+                          tamAbs * 1.5,
+                        ),
                       ),
                     ),
                   ),
@@ -423,15 +436,112 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          resolverTSP();
-        },
-        backgroundColor: Colors.blueAccent,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.route),
-        label: const Text('Resolver'),
+     floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton.extended(
+            onPressed: () {
+              if (ciudadSeleccionada == null) {
+                modoAgregar = modoConectar = modoEliminar = modoEditar = modoColor = false;
+                ciudadSeleccionada = null;
+                mostrarSeleccionCiudadInicio();
+              } else {
+                resolverTSP();
+              }
+            },
+            backgroundColor: Colors.blueAccent,
+            foregroundColor: Colors.white,
+            icon: const Icon(Icons.route),
+            label: Text(ciudadSeleccionada == null ? "Inicio" : "Resolver"),
+          ),
+          const SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: generarNodosCompletos,
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+            tooltip: 'Generar 20 nodos completos',
+            child: const Icon(Icons.auto_graph),
+          ),
+        ],
       ),
+    );
+  }
+
+  void generarNodosCompletos() {
+    final rng = Random();
+    final ancho = MediaQuery.of(context).size.width;
+    final alto = MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top;
+    final padding = 50.0;
+
+    // Generar 14 posiciones aleatorias
+    List<Offset> nuevasCiudades = List.generate(20, (_) {
+      return Offset(
+        padding + rng.nextDouble() * (ancho - 2 * padding),
+        padding + rng.nextDouble() * (alto - 2 * padding),
+      );
+    });
+
+    // Nombres y colores iniciales
+    List<String> nuevosNombres = List.generate(20, (i) => 'Ciudad ${i + 1}');
+    List<Color> nuevosColores = List.generate(20, (_) => Colors.blue);
+
+    // Conexiones completas con peso aleatorio entre 2 y 10
+    List<Conexion> nuevasConexiones = [];
+    for (int i = 0; i < 20; i++) {
+      for (int j = i + 1; j < 20; j++) {
+        double peso = rng.nextInt(9) + 2; // entre 2 y 10
+        nuevasConexiones.add(Conexion(i, j, peso));
+      }
+    }
+
+    setState(() {
+      ciudades = nuevasCiudades;
+      nombresCiudades = nuevosNombres;
+      coloresCiudades = nuevosColores;
+      conexiones = nuevasConexiones;
+      ruta = null;
+      posViajero = null;
+      ciudadSeleccionada = null;
+      pesoTotal = null;
+      controller?.stop();
+      controller?.dispose();
+      controller = null;
+    });
+  }
+
+   void mostrarSeleccionCiudadInicio() {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text("Seleccionar ciudad de inicio"),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: MediaQuery.of(context).size.height * 0.5,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: ciudades.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(nombresCiudades[index]),
+                  onTap: () {
+                    setState(() {
+                      ciudadSeleccionada = index;
+                    });
+                    Navigator.pop(ctx);
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Cancelar"),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -565,72 +675,67 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
   }
 
   void resolverTSP() {
-    var conexInvalidas = conexiones.where((c) => c.peso <= 0).toList();
-    if (conexInvalidas.isNotEmpty) {
-      showDialog(
-        context: context,
-        builder:
-            (_) => AlertDialog(
-              title: const Text("Error en conexiones"),
-              content: Text(
-                "Hay ${conexInvalidas.length} conexión(es) con peso 0 o negativo.\n"
-                "Por favor, corrige todos los pesos antes de continuar.",
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Entendido"),
-                ),
-              ],
-            ),
-      );
-      return;
-    }
-    final int n = ciudades.length;
-    List<List<double>> matriz = List.generate(
-      n,
-      (_) => List<double>.filled(n, double.infinity),
+    if (ciudades.length < 2 || conexiones.isEmpty) return;
+
+    int startCity = ciudadSeleccionada ?? 0;
+    AlgoritmoGenetico algoritmo = AlgoritmoGenetico(
+      startCity: startCity,
+      ciudades: ciudades,
+      conexiones: conexiones,
+      populationSize: 200,
+      generations: 500,
+      mutationRate: 0.1,
     );
-    for (var c in conexiones) {
-      matriz[c.ciudad1][c.ciudad2] = c.peso;
-      matriz[c.ciudad2][c.ciudad1] = c.peso;
+    List<int> nuevaRuta = algoritmo.resolver();
+    int idx = nuevaRuta.indexOf(startCity);
+    if (idx > 0) {
+      List<int> rota = [
+        ...nuevaRuta.sublist(idx),
+        ...nuevaRuta.sublist(0, idx),
+      ];
+      nuevaRuta = rota;
     }
 
-    AlgoritmoGenetico gen = AlgoritmoGenetico(distancias: matriz);
-    List<int> mejorRuta = gen.resolver();
-    int idx0 = mejorRuta.indexOf(0);
-    if (idx0 > 0) {
-      mejorRuta = [...mejorRuta.sublist(idx0), ...mejorRuta.sublist(0, idx0)];
-    }
+    nuevaRuta = nuevaRuta.reversed.toList();
     setState(() {
-      ruta = mejorRuta;
-      pesoTotal = 0.0;
-      for (int i = 0; i < ruta!.length - 1; i++) {
-        pesoTotal = (pesoTotal ?? 0) + matriz[ruta![i]][ruta![i + 1]];
-      }
-      pesoTotal = (pesoTotal ?? 0) + matriz[ruta!.last][ruta!.first];
+      ruta = nuevaRuta;
     });
+    double sumaPesos = 0;
+    for (int i = 0; i < ruta!.length - 1; i++) {
+      int a = ruta![i];
+      int b = ruta![i + 1];
+      final conexion = conexiones.firstWhere(
+        (c) =>
+            (c.ciudad1 == a && c.ciudad2 == b) ||
+            (c.ciudad1 == b && c.ciudad2 == a),
+        orElse: () => Conexion(a, b, 0),
+      );
+      sumaPesos += conexion.peso;
+    }
+
+    setState(() {
+      pesoTotal = sumaPesos;
+    });
+
     animacion();
   }
 
   void animacion() {
     if (ruta == null || ruta!.length < 2) return;
+    final rutaCorrecta = ruta!.reversed.toList();
     List<Offset> puntosRuta = [];
     List<double> distSegmentos = [];
     double totalDist = 0;
-    for (int i = 0; i < ruta!.length - 1; i++) {
-      Offset a = ciudades[ruta![i]];
-      Offset b = ciudades[ruta![i + 1]];
+
+    for (int i = 0; i < rutaCorrecta.length - 1; i++) {
+      Offset a = ciudades[rutaCorrecta[i]];
+      Offset b = ciudades[rutaCorrecta[i + 1]];
       puntosRuta.add(a);
       double d = (b - a).distance;
       distSegmentos.add(d);
       totalDist += d;
     }
-    puntosRuta.add(ciudades[ruta!.last]);
-    Offset inicio = ciudades[ruta!.first];
-    double dRetorno = (inicio - ciudades[ruta!.last]).distance;
-    distSegmentos.add(dRetorno);
-    totalDist += dRetorno;
+    puntosRuta.add(ciudades[rutaCorrecta.last]);
     controller?.dispose();
     controller = AnimationController(
       vsync: this,
@@ -638,26 +743,26 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
     );
     baseDuration = controller!.duration!;
 
-    animation = Tween<double>(
-      begin: 0,
-      end: totalDist,
-    ).animate(controller!)..addListener(() {
-      double recorrido = animation!.value;
-      double acumulado = 0;
-
-      for (int i = 0; i < distSegmentos.length; i++) {
-        if (recorrido <= acumulado + distSegmentos[i]) {
-          double t = (recorrido - acumulado) / distSegmentos[i];
-          Offset p0 = puntosRuta[i];
-          Offset p1 = (i < ruta!.length - 1) ? ciudades[ruta![i + 1]] : inicio;
-          posViajero = Offset.lerp(p0, p1, t);
-          break;
-        }
-        acumulado += distSegmentos[i];
-      }
-
-      setState(() {});
-    });
+    animation =
+        Tween<double>(begin: 0, end: totalDist).animate(controller!)
+          ..addListener(() {
+            double recorrido = animation!.value;
+            double acumulado = 0;
+            for (int i = 0; i < distSegmentos.length; i++) {
+              if (recorrido <= acumulado + distSegmentos[i]) {
+                double t = (recorrido - acumulado) / distSegmentos[i];
+                Offset p0 = puntosRuta[i];
+                Offset p1 = puntosRuta[i + 1];
+                posViajero = Offset.lerp(p0, p1, t);
+                break;
+              }
+              acumulado += distSegmentos[i];
+            }
+            setState(() {});
+          })
+          ..addStatusListener((status) {
+            if (status == AnimationStatus.completed) {}
+          });
 
     controller!.forward(from: 0);
   }
