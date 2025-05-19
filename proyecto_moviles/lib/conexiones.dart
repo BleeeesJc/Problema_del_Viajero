@@ -6,8 +6,9 @@ class Conexiones extends CustomPainter {
   Offset fin;
   bool destacada;
   double tam;
+  double curva;
 
-  Conexiones(this.inicio, this.fin, this.destacada, this.tam);
+  Conexiones(this.inicio, this.fin, this.destacada, this.tam, this.curva);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -25,7 +26,7 @@ class Conexiones extends CustomPainter {
     double ux = -dy / length;
     double uy = dx / length;
 
-    Offset controlPoint = mid + Offset(ux * tam * 0.4, uy * tam * 0.4);
+    Offset controlPoint = mid + Offset(ux * tam * curva, uy * tam * curva);
     Path path =
         Path()
           ..moveTo(inicio.dx, inicio.dy)
