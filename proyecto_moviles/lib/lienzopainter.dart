@@ -63,7 +63,7 @@ class LienzoPainter extends CustomPainter {
         enRuta = true;
       }
 
-      Conexiones painter = Conexiones(p1, p2, enRuta, tam);
+      Conexiones painter = Conexiones(p1, p2, enRuta, tam, conexion.curva);
       painter.paint(canvas, Size.zero);
 
       double dx = p2.dx - p1.dx;

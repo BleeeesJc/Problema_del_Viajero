@@ -244,9 +244,7 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: InteractiveViewer(
-                    boundaryMargin: const EdgeInsets.all(
-                      100,
-                    ), 
+                    boundaryMargin: const EdgeInsets.all(100),
                     minScale: 0.5,
                     maxScale: 3.0,
                     panEnabled: true,
@@ -436,13 +434,15 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
             ),
         ],
       ),
-     floatingActionButton: Column(
+      floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           FloatingActionButton.extended(
             onPressed: () {
               if (ciudadSeleccionada == null) {
-                modoAgregar = modoConectar = modoEliminar = modoEditar = modoColor = false;
+                modoAgregar =
+                    modoConectar =
+                        modoEliminar = modoEditar = modoColor = false;
                 ciudadSeleccionada = null;
                 mostrarSeleccionCiudadInicio();
               } else {
@@ -470,26 +470,21 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
   void generarNodosCompletos() {
     final rng = Random();
     final ancho = MediaQuery.of(context).size.width;
-    final alto = MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top;
+    final alto =
+        MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top;
     final padding = 50.0;
-
-    // Generar 14 posiciones aleatorias
     List<Offset> nuevasCiudades = List.generate(20, (_) {
       return Offset(
         padding + rng.nextDouble() * (ancho - 2 * padding),
         padding + rng.nextDouble() * (alto - 2 * padding),
       );
     });
-
-    // Nombres y colores iniciales
     List<String> nuevosNombres = List.generate(20, (i) => 'Ciudad ${i + 1}');
     List<Color> nuevosColores = List.generate(20, (_) => Colors.blue);
-
-    // Conexiones completas con peso aleatorio entre 2 y 10
     List<Conexion> nuevasConexiones = [];
     for (int i = 0; i < 20; i++) {
       for (int j = i + 1; j < 20; j++) {
-        double peso = rng.nextInt(9) + 2; // entre 2 y 10
+        double peso = rng.nextInt(9) + 2;
         nuevasConexiones.add(Conexion(i, j, peso));
       }
     }
@@ -509,7 +504,7 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
     });
   }
 
-   void mostrarSeleccionCiudadInicio() {
+  void mostrarSeleccionCiudadInicio() {
     showDialog(
       context: context,
       builder: (ctx) {
@@ -560,20 +555,45 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
   }
 
   void mostrarDialogoPeso(int indexConexion) {
-    TextEditingController controller = TextEditingController(
-      text: conexiones[indexConexion].peso.toString(),
-    );
+    final conexion = conexiones[indexConexion];
+    double nuevoPeso = conexion.peso;
+    double nuevaCurva = conexion.curva;
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text("Editar peso"),
-            content: TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: "Peso (mayor que 0)",
-              ),
+            title: const Text("Editar peso y curva"),
+            content: StatefulBuilder(
+              builder:
+                  (context, setStateSB) => Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: "Peso (mayor que 0)",
+                          hintText: nuevoPeso.toStringAsFixed(1),
+                        ),
+                        onChanged: (value) {
+                          final parsed = double.tryParse(value);
+                          if (parsed != null && parsed > 0) {
+                            setStateSB(() => nuevoPeso = parsed);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Text("Curva: ${nuevaCurva.toStringAsFixed(2)}"),
+                      Slider(
+                        min: 0.0,
+                        max: 1.0,
+                        divisions: 20,
+                        value: nuevaCurva,
+                        label: nuevaCurva.toStringAsFixed(2),
+                        onChanged:
+                            (value) => setStateSB(() => nuevaCurva = value),
+                      ),
+                    ],
+                  ),
             ),
             actions: [
               TextButton(
@@ -582,8 +602,8 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
               ),
               TextButton(
                 onPressed: () {
-                  double? nuevo = double.tryParse(controller.text);
-                  if (nuevo == null || nuevo <= 0) {
+                  if (nuevoPeso <= 0) {
+                    // Mostrar error
                     showDialog(
                       context: context,
                       builder:
@@ -602,7 +622,10 @@ class _LienzoState extends State<Lienzo> with TickerProviderStateMixin {
                     );
                     return;
                   }
-                  setState(() => conexiones[indexConexion].peso = nuevo);
+                  setState(() {
+                    conexion.peso = nuevoPeso;
+                    conexion.curva = nuevaCurva;
+                  });
                   Navigator.pop(context);
                 },
                 child: const Text("Guardar"),
